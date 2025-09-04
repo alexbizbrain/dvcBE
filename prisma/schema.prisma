@@ -12,3 +12,18 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model LiabilityClaim {
+  id            String   @id @default(cuid())
+  email         String?
+  phoneNumber   String?
+  countryCode   String   @default("us")
+  atFaultDriver Boolean
+  state         String
+  agreeToEmails Boolean  @default(false)
+  agreeToSms    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("liability_claims")
+}

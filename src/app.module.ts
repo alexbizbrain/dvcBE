@@ -3,12 +3,14 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma.service';
+import { LiabilityClaimsModule } from './liability-claims/liability-claims.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    LiabilityClaimsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
