@@ -27,3 +27,17 @@ model LiabilityClaim {
 
   @@map("liability_claims")
 }
+
+model CustomerQuery {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String
+  phoneNumber String?
+  countryCode String   @default("+1")
+  message     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("customer_queries")
+}
