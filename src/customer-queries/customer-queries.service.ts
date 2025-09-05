@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCustomerQueryDto } from './dto/create-customer-query.dto';
 import { PrismaService } from '../prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -26,9 +30,13 @@ export class CustomerQueriesService {
       };
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
-        throw new InternalServerErrorException('Failed to create customer query: ' + error.message);
+        throw new InternalServerErrorException(
+          'Failed to create customer query: ' + error.message,
+        );
       }
-      throw new InternalServerErrorException('An unexpected error occurred while creating the customer query');
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while creating the customer query',
+      );
     }
   }
 
@@ -46,7 +54,9 @@ export class CustomerQueriesService {
         count: queries.length,
       };
     } catch (error) {
-      throw new InternalServerErrorException('Failed to retrieve customer queries');
+      throw new InternalServerErrorException(
+        'Failed to retrieve customer queries',
+      );
     }
   }
 
@@ -68,7 +78,9 @@ export class CustomerQueriesService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new InternalServerErrorException('Failed to retrieve customer query');
+      throw new InternalServerErrorException(
+        'Failed to retrieve customer query',
+      );
     }
   }
 }
