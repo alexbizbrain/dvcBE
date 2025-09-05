@@ -13,6 +13,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =============================================================================
+// ROLES & PERMISSIONS
+// =============================================================================
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique // "USER" or "ADMIN"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]
+
+  @@map("roles")
+}
+
+// =============================================================================
+// USER MANAGEMENT
+// =============================================================================
+
+model User {
+  id               String    @id @default(cuid())
+  email            String?    @unique
+  phoneNumber      String?   @unique
+  countryCode      String?   @default("+1")
+  firstName        String?
+  lastName         String?
+  password         String?   // Only for admin users, null for regular users
+  isEmailVerified  Boolean   @default(false)
+  isPhoneVerified  Boolean   @default(false)
+  isActive         Boolean   @default(true)
+  lastLoginAt      DateTime?
+  roleId           String    // Foreign key to Role
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  role             Role      @relation(fields: [roleId], references: [id])
+
+  @@map("users")
+}
+
 model LiabilityClaim {
   id            String   @id @default(cuid())
   email         String?
