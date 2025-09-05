@@ -5,7 +5,6 @@ import { AppService } from './app.service';
 import { PrismaService } from './prisma.service';
 import { LiabilityClaimsModule } from './liability-claims/liability-claims.module';
 import { CustomerQueriesModule } from './customer-queries/customer-queries.module';
-import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
 
 @Module({
@@ -13,7 +12,6 @@ import { AdminModule } from './admin/admin.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    AuthModule,
     AdminModule,
     LiabilityClaimsModule,
     CustomerQueriesModule,

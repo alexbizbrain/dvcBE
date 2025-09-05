@@ -1,14 +1,13 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-// import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { User } from '@prisma/client';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../../prisma.service';
 
-export interface LoginResponse {
+export interface AdminLoginResponse {
   success: boolean;
   accessToken: string;
-  user: {
+  admin: {
     id: string;
     email: string;
     firstName: string | null;
@@ -18,7 +17,7 @@ export interface LoginResponse {
 }
 
 @Injectable()
-export class AuthService {
+export class AdminAuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -31,16 +30,16 @@ export class AuthService {
     });
 
     if (!user || !user.password || user.role.name !== 'ADMIN') {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid admin credentials');
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Account is inactive');
+      throw new UnauthorizedException('Admin account is inactive');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid admin credentials');
     }
 
     // Update last login
@@ -53,7 +52,7 @@ export class AuthService {
     return result;
   }
 
-  async login(user: any): Promise<LoginResponse> {
+  async login(user: any): Promise<AdminLoginResponse> {
     const payload = {
       email: user.email,
       sub: user.id,
@@ -63,7 +62,7 @@ export class AuthService {
     return {
       success: true,
       accessToken: this.jwtService.sign(payload),
-      user: {
+      admin: {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
@@ -73,13 +72,13 @@ export class AuthService {
     };
   }
 
-  async validateUserById(userId: string): Promise<User | null> {
+  async validateAdminById(adminId: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: adminId },
       include: { role: true },
     });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || user.role.name !== 'ADMIN') {
       return null;
     }
 

@@ -3,7 +3,7 @@
 ## 🔐 Authentication
 
 ### Admin Login
-**Endpoint:** `POST /auth/login`
+**Endpoint:** `POST /admin/auth/login`
 
 **Request:**
 ```json
@@ -18,7 +18,7 @@
 {
   "success": true,
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
+  "admin": {
     "id": "cm123abc",
     "email": "admin@example.com",
     "firstName": "Admin",
