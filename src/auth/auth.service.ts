@@ -6,7 +6,8 @@ import { User } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 
 export interface LoginResponse {
-  access_token: string;
+  success: boolean;
+  accessToken: string;
   user: {
     id: string;
     email: string;
@@ -53,14 +54,15 @@ export class AuthService {
   }
 
   async login(user: any): Promise<LoginResponse> {
-    const payload = { 
-      email: user.email, 
+    const payload = {
+      email: user.email,
       sub: user.id,
       role: user.role.name,
     };
 
     return {
-      access_token: this.jwtService.sign(payload),
+      success: true,
+      accessToken: this.jwtService.sign(payload),
       user: {
         id: user.id,
         email: user.email,

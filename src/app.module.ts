@@ -7,7 +7,6 @@ import { LiabilityClaimsModule } from './liability-claims/liability-claims.modul
 import { CustomerQueriesModule } from './customer-queries/customer-queries.module';
 import { AuthModule } from './auth/auth.module';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({

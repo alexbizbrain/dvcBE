@@ -19,7 +19,10 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Request() req, @Body() loginDto: LoginDto): Promise<LoginResponse> {
+  async login(
+    @Request() req,
+    @Body() loginDto: LoginDto,
+  ): Promise<LoginResponse> {
     return this.authService.login(req.user);
   }
 
@@ -28,8 +31,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(): Promise<{ message: string }> {
     // For JWT, logout is typically handled on the client side
-    // by removing the token from storage. 
-    // If you need server-side logout, you'd need to implement 
+    // by removing the token from storage.
+    // If you need server-side logout, you'd need to implement
     // token blacklisting which requires storing tokens in database.
     return { message: 'Logged out successfully' };
   }

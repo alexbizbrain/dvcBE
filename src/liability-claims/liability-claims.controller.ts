@@ -4,7 +4,9 @@ import { CreateLiabilityClaimDto } from './dto/create-liability-claim.dto';
 
 @Controller('liability-claims')
 export class LiabilityClaimsController {
-  constructor(private readonly liabilityClaimsService: LiabilityClaimsService) {}
+  constructor(
+    private readonly liabilityClaimsService: LiabilityClaimsService,
+  ) {}
 
   @Post()
   create(@Body() createLiabilityClaimDto: CreateLiabilityClaimDto) {
