@@ -16,7 +16,12 @@ import { AdminAuthService } from './admin-auth.service';
     }),
   ],
   controllers: [AdminAuthController],
-  providers: [AdminAuthService, AdminLocalStrategy, AdminJwtStrategy, PrismaService],
+  providers: [
+    AdminAuthService,
+    AdminLocalStrategy,
+    AdminJwtStrategy,
+    PrismaService,
+  ],
   exports: [AdminAuthService],
 })
 export class AdminAuthModule {}
