@@ -6,6 +6,7 @@ import { PrismaService } from './prisma.service';
 import { LiabilityClaimsModule } from './liability-claims/liability-claims.module';
 import { CustomerQueriesModule } from './customer-queries/customer-queries.module';
 import { AdminModule } from './admin/admin.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AdminModule } from './admin/admin.module';
     AdminModule,
     LiabilityClaimsModule,
     CustomerQueriesModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

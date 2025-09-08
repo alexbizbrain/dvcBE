@@ -44,6 +44,7 @@ model User {
   password         String?   // Only for admin users, null for regular users
   isEmailVerified  Boolean   @default(false)
   isPhoneVerified  Boolean   @default(false)
+  isBusinessUser   Boolean   @default(false)
   isActive         Boolean   @default(true)
   lastLoginAt      DateTime?
   roleId           String    // Foreign key to Role
