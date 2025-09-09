@@ -85,3 +85,21 @@ model CustomerQuery {
 
   @@map("customer_queries")
 }
+
+// =============================================================================
+// CUSTOMER REVIEWS
+// =============================================================================
+
+model Review {
+  id              String   @id @default(cuid())
+  customerName    String   // Display name like "Rihana. RK"
+  customerInitials String?  // For avatar display like "RK"
+  rating          Int      // 1-5 stars
+  reviewText      String   // The actual review content
+  source          String   @default("Trustpilot") // "Trustpilot", "Google", "Website", etc.
+  displayOrder    Int?     // For custom ordering on frontend
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("reviews")
+}

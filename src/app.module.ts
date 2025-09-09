@@ -7,6 +7,7 @@ import { LiabilityClaimsModule } from './liability-claims/liability-claims.modul
 import { CustomerQueriesModule } from './customer-queries/customer-queries.module';
 import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
+import { ReviewsModule } from './admin/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { UsersModule } from './users/users.module';
     LiabilityClaimsModule,
     CustomerQueriesModule,
     UsersModule,
+    ReviewsModule
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
