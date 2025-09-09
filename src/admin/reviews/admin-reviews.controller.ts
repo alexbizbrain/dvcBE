@@ -13,8 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AdminReviewsService } from './admin-reviews.service';
-import { CreateReviewDto } from './dto/create-review.dto';
-import { UpdateReviewDto } from './dto/update-review.dto';
+import { ReviewDto } from './dto/review.dto';
 import { ReviewQueryDto } from './dto/review-query.dto';
 import { ReviewResponseDto, PaginatedReviewsResponseDto } from './dto/review-response.dto';
 
@@ -25,12 +24,12 @@ export class AdminReviewsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createReview(@Body() createReviewDto: CreateReviewDto): Promise<{
+  async createReview(@Body() reviewDto: ReviewDto): Promise<{
     success: boolean;
     message: string;
     data: ReviewResponseDto;
   }> {
-    const review = await this.adminReviewsService.createReview(createReviewDto);
+    const review = await this.adminReviewsService.createReview(reviewDto);
     return {
       success: true,
       message: 'Review created successfully',
@@ -88,13 +87,13 @@ export class AdminReviewsController {
   @Patch(':id')
   async updateReview(
     @Param('id') id: string,
-    @Body() updateReviewDto: UpdateReviewDto,
+    @Body() reviewDto: ReviewDto,
   ): Promise<{
     success: boolean;
     message: string;
     data: ReviewResponseDto;
   }> {
-    const review = await this.adminReviewsService.updateReview(id, updateReviewDto);
+    const review = await this.adminReviewsService.updateReview(id, reviewDto);
     return {
       success: true,
       message: 'Review updated successfully',

@@ -1,8 +1,7 @@
 // src/admin/reviews/admin-reviews.service.ts
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 // import { PrismaService } from '../../prisma/prisma.service';
-import { CreateReviewDto } from './dto/create-review.dto';
-import { UpdateReviewDto } from './dto/update-review.dto';
+import { ReviewDto } from './dto/review.dto';
 import { ReviewQueryDto } from './dto/review-query.dto';
 import { ReviewResponseDto, PaginatedReviewsResponseDto } from './dto/review-response.dto';
 import { PrismaService } from 'src/prisma.service';
@@ -11,15 +10,33 @@ import { PrismaService } from 'src/prisma.service';
 export class AdminReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createReview(createReviewDto: CreateReviewDto): Promise<ReviewResponseDto> {
+  async createReview(reviewDto: ReviewDto): Promise<ReviewResponseDto> {
     try {
+      // Validate required fields for creation
+      if (!reviewDto.customerName) {
+        throw new BadRequestException('Customer name is required');
+      }
+      if (!reviewDto.rating) {
+        throw new BadRequestException('Rating is required');
+      }
+      if (!reviewDto.reviewText) {
+        throw new BadRequestException('Review text is required');
+      }
+
       // Generate initials if not provided
-      if (!createReviewDto.customerInitials && createReviewDto.customerName) {
-        createReviewDto.customerInitials = this.generateInitials(createReviewDto.customerName);
+      if (!reviewDto.customerInitials) {
+        reviewDto.customerInitials = this.generateInitials(reviewDto.customerName);
       }
 
       const review = await this.prisma.review.create({
-        data: createReviewDto,
+        data: {
+          customerName: reviewDto.customerName,
+          customerInitials: reviewDto.customerInitials,
+          rating: reviewDto.rating,
+          reviewText: reviewDto.reviewText,
+          source: reviewDto.source || 'Website',
+          displayOrder: reviewDto.displayOrder,
+        },
       });
 
       return this.mapToResponseDto(review);
@@ -87,7 +104,7 @@ export class AdminReviewsService {
     return this.mapToResponseDto(review);
   }
 
-  async updateReview(id: string, updateReviewDto: UpdateReviewDto): Promise<ReviewResponseDto> {
+  async updateReview(id: string, reviewDto: ReviewDto): Promise<ReviewResponseDto> {
     const existingReview = await this.prisma.review.findUnique({
       where: { id },
     });
@@ -98,13 +115,22 @@ export class AdminReviewsService {
 
     try {
       // Generate initials if customerName is being updated and initials not provided
-      if (updateReviewDto.customerName && !updateReviewDto.customerInitials) {
-        updateReviewDto.customerInitials = this.generateInitials(updateReviewDto.customerName);
+      if (reviewDto.customerName && !reviewDto.customerInitials) {
+        reviewDto.customerInitials = this.generateInitials(reviewDto.customerName);
       }
+
+      // Build update data, filtering out undefined values
+      const updateData: any = {};
+      if (reviewDto.customerName !== undefined) updateData.customerName = reviewDto.customerName;
+      if (reviewDto.customerInitials !== undefined) updateData.customerInitials = reviewDto.customerInitials;
+      if (reviewDto.rating !== undefined) updateData.rating = reviewDto.rating;
+      if (reviewDto.reviewText !== undefined) updateData.reviewText = reviewDto.reviewText;
+      if (reviewDto.source !== undefined) updateData.source = reviewDto.source;
+      if (reviewDto.displayOrder !== undefined) updateData.displayOrder = reviewDto.displayOrder;
 
       const updatedReview = await this.prisma.review.update({
         where: { id },
-        data: updateReviewDto,
+        data: updateData,
       });
 
       return this.mapToResponseDto(updatedReview);
