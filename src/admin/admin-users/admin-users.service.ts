@@ -1,0 +1,242 @@
+// src/admin/admin-users/admin-users.service.ts
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { PrismaService } from '../../prisma.service';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto';
+import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { AdminUserResponseDto, PaginatedAdminUsersResponseDto } from './dto/admin-user-response.dto';
+import * as bcrypt from 'bcryptjs';
+import { AdminQueryDto } from './dto/admin-query.dto';
+
+@Injectable()
+export class AdminUsersService {
+  constructor(private prisma: PrismaService) {}
+
+  async create(createAdminUserDto: CreateAdminUserDto): Promise<AdminUserResponseDto> {
+    const { email, phoneNumber, password, ...userData } = createAdminUserDto;
+
+    // Check if email already exists
+    if (email) {
+      const existingUserByEmail = await this.prisma.user.findUnique({
+        where: { email },
+      });
+      if (existingUserByEmail) {
+        throw new ConflictException('Email already exists');
+      }
+    }
+
+    // Check if phone number already exists
+    if (phoneNumber) {
+      const existingUserByPhone = await this.prisma.user.findUnique({
+        where: { phoneNumber },
+      });
+      if (existingUserByPhone) {
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // Get admin role
+    const adminRole = await this.prisma.role.findUnique({
+      where: { name: 'ADMIN' },
+    });
+
+    if (!adminRole) {
+      throw new NotFoundException('Admin role not found');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = await this.prisma.user.create({
+      data: {
+        ...userData,
+        email,
+        phoneNumber,
+        password: hashedPassword,
+        roleId: adminRole.id,
+        isEmailVerified: true, // Auto-verify admin users
+      },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return this.formatUserResponse(user);
+  }
+
+async findAll(query: AdminQueryDto): Promise<PaginatedAdminUsersResponseDto> {
+  const { page = 1, limit = 10, search } = query;
+  const skip = (page - 1) * limit;
+
+  // Build where clause for admin users
+  const where: any = {
+    role: {
+      name: 'ADMIN',
+    },
+  };
+
+  if (search) {
+    where.OR = [
+      { firstName: { contains: search, mode: 'insensitive' } },
+      { lastName: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+      { phoneNumber: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  const [users, total] = await Promise.all([
+    this.prisma.user.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        role: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    this.prisma.user.count({ where }),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    users: users.map(user => this.formatUserResponse(user)),
+    total,
+    page,
+    limit,
+    totalPages,
+  };
+}
+
+  async findOne(id: string): Promise<AdminUserResponseDto> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id,
+        role: {
+          name: 'ADMIN',
+        },
+      },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Admin user not found');
+    }
+
+    return this.formatUserResponse(user);
+  }
+
+  async update(
+    id: string,
+    updateAdminUserDto: UpdateAdminUserDto,
+    currentUserId: string,
+  ): Promise<AdminUserResponseDto> {
+    const { email, phoneNumber, ...updateData } = updateAdminUserDto;
+
+    // Check if user exists and is admin
+    const existingUser = await this.findOne(id);
+
+    // Check for email conflicts
+    if (email && email !== existingUser.email) {
+      const emailConflict = await this.prisma.user.findUnique({
+        where: { email },
+      });
+      if (emailConflict) {
+        throw new ConflictException('Email already exists');
+      }
+    }
+
+    // Check for phone number conflicts
+    if (phoneNumber && phoneNumber !== existingUser.phoneNumber) {
+      const phoneConflict = await this.prisma.user.findUnique({
+        where: { phoneNumber },
+      });
+      if (phoneConflict) {
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // Prevent user from deactivating themselves
+    if (id === currentUserId && updateData.isActive === false) {
+      throw new ForbiddenException('You cannot deactivate your own account');
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: {
+        ...updateData,
+        email,
+        phoneNumber,
+      },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return this.formatUserResponse(updatedUser);
+  }
+
+  async remove(id: string, currentUserId: string): Promise<{ message: string }> {
+    // Check if user exists and is admin
+    await this.findOne(id);
+
+    // Prevent user from deleting themselves
+    if (id === currentUserId) {
+      throw new ForbiddenException('You cannot delete your own account');
+    }
+
+    await this.prisma.user.delete({
+      where: { id },
+    });
+
+    return { message: 'Admin user deleted successfully' };
+  }
+
+  async changePassword(
+    id: string,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    // Check if user exists and is admin
+    await this.findOne(id);
+
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword },
+    });
+
+    return { message: 'Password changed successfully' };
+  }
+
+  private formatUserResponse(user: any): AdminUserResponseDto {
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+}

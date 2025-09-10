@@ -21,7 +21,7 @@ console.log('--- STDOUT TEST ---', {
       whitelist: true,
       forbidNonWhitelisted: true,
       transformOptions: {
-        enableImplicitConversion: true,
+        // enableImplicitConversion: true,
       },
     }),
   );
