@@ -34,16 +34,16 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   isBusinessUser  Boolean   @default(false)
-  role            Role      @relation(fields: [roleId], references: [id])
   otps            Otp[]
+  role            Role      @relation(fields: [roleId], references: [id])
 
   @@map("users")
 }
 
 model Otp {
   id        String   @id @default(cuid())
-  code      String   // 6-digit OTP code
-  type      String   // "email" or "phone"  
+  code      String
+  type      String
   isUsed    Boolean  @default(false)
   expiresAt DateTime
   userId    String
@@ -82,20 +82,16 @@ model CustomerQuery {
   @@map("customer_queries")
 }
 
-// =============================================================================
-// CUSTOMER REVIEWS
-// =============================================================================
-
 model Review {
-  id              String   @id @default(cuid())
-  customerName    String   // Display name like "Rihana. RK"
-  customerInitials String?  // For avatar display like "RK"
-  rating          Int      // 1-5 stars
-  reviewText      String   // The actual review content
-  source          String   @default("Trustpilot") // "Trustpilot", "Google", "Website", etc.
-  displayOrder    Int?     // For custom ordering on frontend
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(cuid())
+  customerName     String
+  customerInitials String?
+  rating           Int
+  reviewText       String
+  source           String   @default("Trustpilot")
+  displayOrder     Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@map("reviews")
 }
