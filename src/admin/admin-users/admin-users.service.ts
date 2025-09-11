@@ -16,7 +16,7 @@ import { AdminQueryDto } from './dto/admin-query.dto';
 
 @Injectable()
 export class AdminUsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(createAdminUserDto: CreateAdminUserDto): Promise<AdminUserResponseDto> {
     const { email, phoneNumber, password, ...userData } = createAdminUserDto;
@@ -76,51 +76,51 @@ export class AdminUsersService {
     return this.formatUserResponse(user);
   }
 
-async findAll(query: AdminQueryDto): Promise<PaginatedAdminUsersResponseDto> {
-  const { page = 1, limit = 10, search } = query;
-  const skip = (page - 1) * limit;
+  async findAll(query: AdminQueryDto): Promise<PaginatedAdminUsersResponseDto> {
+    const { page = 1, limit = 10, search } = query;
+    const skip = (page - 1) * limit;
 
-  // Build where clause for admin users
-  const where: any = {
-    role: {
-      name: 'ADMIN',
-    },
-  };
-
-  if (search) {
-    where.OR = [
-      { firstName: { contains: search, mode: 'insensitive' } },
-      { lastName: { contains: search, mode: 'insensitive' } },
-      { email: { contains: search, mode: 'insensitive' } },
-      { phoneNumber: { contains: search, mode: 'insensitive' } },
-    ];
-  }
-
-  const [users, total] = await Promise.all([
-    this.prisma.user.findMany({
-      where,
-      skip,
-      take: limit,
-      include: {
-        role: {
-          select: { id: true, name: true },
-        },
+    // Build where clause for admin users
+    const where: any = {
+      role: {
+        name: 'ADMIN',
       },
-      orderBy: { createdAt: 'desc' },
-    }),
-    this.prisma.user.count({ where }),
-  ]);
+    };
 
-  const totalPages = Math.ceil(total / limit);
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phoneNumber: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
-  return {
-    users: users.map(user => this.formatUserResponse(user)),
-    total,
-    page,
-    limit,
-    totalPages,
-  };
-}
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          role: {
+            select: { id: true, name: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      users: users.map(user => this.formatUserResponse(user)),
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
 
   async findOne(id: string): Promise<AdminUserResponseDto> {
     const user = await this.prisma.user.findFirst({
@@ -210,12 +210,13 @@ async findAll(query: AdminQueryDto): Promise<PaginatedAdminUsersResponseDto> {
     if (id === currentUserId) {
       throw new ForbiddenException('You cannot delete your own account');
     }
-
-    await this.prisma.user.delete({
+    // Soft delete: set isActive to false
+    await this.prisma.user.update({
       where: { id },
+      data: { isActive: false },
     });
 
-    return { message: 'Admin user deleted successfully' };
+    return { message: 'Admin user deactivated successfully' };
   }
 
   async changePassword(
