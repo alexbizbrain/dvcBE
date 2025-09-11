@@ -10,15 +10,20 @@ import { PrismaService } from '../../prisma.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { AdminUserResponseDto, PaginatedAdminUsersResponseDto } from './dto/admin-user-response.dto';
+import {
+  AdminUserResponseDto,
+  PaginatedAdminUsersResponseDto,
+} from './dto/admin-user-response.dto';
 import * as bcrypt from 'bcryptjs';
 import { AdminQueryDto } from './dto/admin-query.dto';
 
 @Injectable()
 export class AdminUsersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-  async create(createAdminUserDto: CreateAdminUserDto): Promise<AdminUserResponseDto> {
+  async create(
+    createAdminUserDto: CreateAdminUserDto,
+  ): Promise<AdminUserResponseDto> {
     const { email, phoneNumber, password, ...userData } = createAdminUserDto;
 
     // Check if email already exists
@@ -114,7 +119,7 @@ export class AdminUsersService {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      users: users.map(user => this.formatUserResponse(user)),
+      users: users.map((user) => this.formatUserResponse(user)),
       total,
       page,
       limit,
@@ -202,7 +207,10 @@ export class AdminUsersService {
     return this.formatUserResponse(updatedUser);
   }
 
-  async remove(id: string, currentUserId: string): Promise<{ message: string }> {
+  async remove(
+    id: string,
+    currentUserId: string,
+  ): Promise<{ message: string }> {
     // Check if user exists and is admin
     await this.findOne(id);
 
