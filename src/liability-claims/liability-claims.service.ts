@@ -60,7 +60,7 @@ export class LiabilityClaimsService {
           const newUser = await this.prisma.user.create({
             data: {
               email: rest.email,
-              phoneNumber: null,
+              phoneNumber: rest.phoneNumber,
               countryCode: rest.countryCode === 'us' ? '+1' : rest.countryCode,
               roleId: userRole.id,
               isBusinessUser: false,

@@ -158,12 +158,23 @@ export class AdminUsersService {
     currentUserId: string,
   ): Promise<{ message: string }> {
     // Check if user exists and is admin
-    await this.findOne(id);
+    const user = await this.findOne(id);
 
     // Prevent user from deleting themselves
     if (id === currentUserId) {
       throw new ForbiddenException('You cannot delete your own account');
     }
+
+    // Protected emails that cannot be deleted
+    const protectedEmails = [
+      'admin@dvcc.com',
+      'abdulwajid2818@gmail.com'
+    ];
+
+    if (user.email && protectedEmails.includes(user.email.toLowerCase())) {
+      throw new ForbiddenException('This admin account is protected and cannot be deleted');
+    }
+
     // Soft delete: set isActive to false
     await this.prisma.user.update({
       where: { id },
