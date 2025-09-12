@@ -1,0 +1,53 @@
+// Add this to your existing schema.prisma file
+
+model CalculatorProgress {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  
+  // Progress tracking
+  currentStep     Int      @default(1)
+  isSubmitted     Boolean  @default(false)
+  lastAccessedAt  DateTime @default(now())
+  
+  // Step 1: Vehicle Information
+  vehicleYear      String?
+  vehicleMake      String?
+  vehicleModel     String?
+  vehicleVin       String?
+  vehicleMileage   String?
+  
+  // Step 2: Accident Information
+  accidentDate            String?
+  isAtFault              String?   // 'yes' | 'no'
+  isRepaired             String?   // 'yes' | 'no'
+  repairCost             String?
+  approximateCarPrice    String?
+  nextAction             String?   @default("file-claim")
+  
+  // Step 3: Insurance Information
+  yourInsurance         String?
+  claimNumber          String?
+  atFaultInsurance     String?
+  adjusterName         String?
+  adjusterEmail        String?
+  adjusterPhone        String?
+  adjusterCountryCode  String?   @default("us")
+  driverName           String?
+  driverEmail          String?
+  driverPhone          String?
+  driverCountryCode    String?   @default("us")
+  
+  // Step 4: Pricing Plan
+  selectedPlan      String?      @default("contingency")
+  agreedToTerms     Boolean      @default(false)
+  signatureDataUrl  String?      // Base64 signature data
+  
+  // Metadata
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("calculator_progress")
+}
