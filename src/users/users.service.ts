@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UserDto } from './dto/user.dto';
+import { EmailService } from '../services/email.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService
+  ) {}
 
   async checkUserExists(email?: string, phoneNumber?: string) {
     if (!email && !phoneNumber) {
@@ -121,17 +125,33 @@ export class UsersService {
       }
     });
 
-    // For development, log the OTP instead of sending it
-    console.log(`OTP for ${email || phoneNumber}: ${otpCode}`);
+    // Send OTP via email if email is provided
+    if (email) {
+      const emailSent = await this.emailService.sendOtpEmail(email, otpCode);
+      if (!emailSent) {
+        throw new Error('Failed to send OTP email');
+      }
+      
+      return {
+        success: true,
+        message: `OTP sent to ${email}`,
+        // Remove this in production:
+        developmentOtp: process.env.NODE_ENV === 'development' ? otpCode : undefined
+      };
+    }
     
-    // In production, you would send email/SMS here
-    // For now, return success with development OTP
-    return {
-      success: true,
-      message: `OTP sent to ${email || phoneNumber}`,
-      // Remove this in production:
-      developmentOtp: otpCode
-    };
+    // For phone number OTP (SMS not implemented yet)
+    if (phoneNumber) {
+      // For development, log the OTP instead of sending SMS
+      console.log(`OTP for ${phoneNumber}: ${otpCode}`);
+      
+      return {
+        success: true,
+        message: `OTP sent to ${phoneNumber}`,
+        // Remove this in production:
+        developmentOtp: process.env.NODE_ENV === 'development' ? otpCode : undefined
+      };
+    }
   }
 
   async verifyOtp(otp: string, email?: string, phoneNumber?: string,) {

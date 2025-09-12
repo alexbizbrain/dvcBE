@@ -22,6 +22,10 @@ export class CreateLiabilityClaimAdminDto {
 
   @IsOptional()
   @IsBoolean()
+  hitAndRun?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   agreeToEmails?: boolean;
 
   @IsOptional()

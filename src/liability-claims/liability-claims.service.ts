@@ -53,12 +53,14 @@ export class LiabilityClaimsService {
               }
             });
           }
+          console.log("rest.phoneNumber")
+          console.log(rest.phoneNumber)
 
           // Create new user
           const newUser = await this.prisma.user.create({
             data: {
               email: rest.email,
-              phoneNumber: rest.phoneNumber,
+              phoneNumber: null,
               countryCode: rest.countryCode === 'us' ? '+1' : rest.countryCode,
               roleId: userRole.id,
               isBusinessUser: false,
@@ -74,6 +76,7 @@ export class LiabilityClaimsService {
           ...rest,
           atFaultDriver: atFaultDriverBool,
           countryCode: rest.countryCode || 'us',
+          hitAndRun: rest.hitAndRun || false,
           agreeToEmails: rest.agreeToEmails || false,
           agreeToSms: rest.agreeToSms || false,
         },

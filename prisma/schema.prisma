@@ -60,6 +60,7 @@ model LiabilityClaim {
   countryCode   String   @default("us")
   atFaultDriver Boolean
   state         String
+  hitAndRun     Boolean  @default(false) @map("hitAndRun")
   agreeToEmails Boolean  @default(false)
   agreeToSms    Boolean  @default(false)
   createdAt     DateTime @default(now())
