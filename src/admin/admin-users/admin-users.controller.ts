@@ -15,7 +15,6 @@ import {
 } from '@nestjs/common';
 import { AdminUsersService } from './admin-users.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
-import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from '../auth/admin-auth.guards';
 import { AdminGuard } from '../auth/admin.guard';
@@ -63,23 +62,6 @@ async findAll(@Query() query: AdminQueryDto) {
     };
   }
 
-  @Patch(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() updateAdminUserDto: UpdateAdminUserDto,
-    @Request() req: any,
-  ) {
-    const user = await this.adminUsersService.update(
-      id,
-      updateAdminUserDto,
-      req.user.id,
-    );
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Admin user updated successfully',
-      data: user,
-    };
-  }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)

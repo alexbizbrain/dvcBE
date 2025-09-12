@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
-import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import {
   AdminUserResponseDto,
@@ -90,6 +89,7 @@ export class AdminUsersService {
       role: {
         name: 'ADMIN',
       },
+      isActive: true,
     };
 
     if (search) {
@@ -152,60 +152,6 @@ export class AdminUsersService {
     return this.formatUserResponse(user);
   }
 
-  async update(
-    id: string,
-    updateAdminUserDto: UpdateAdminUserDto,
-    currentUserId: string,
-  ): Promise<AdminUserResponseDto> {
-    const { email, phoneNumber, ...updateData } = updateAdminUserDto;
-
-    // Check if user exists and is admin
-    const existingUser = await this.findOne(id);
-
-    // Check for email conflicts
-    if (email && email !== existingUser.email) {
-      const emailConflict = await this.prisma.user.findUnique({
-        where: { email },
-      });
-      if (emailConflict) {
-        throw new ConflictException('Email already exists');
-      }
-    }
-
-    // Check for phone number conflicts
-    if (phoneNumber && phoneNumber !== existingUser.phoneNumber) {
-      const phoneConflict = await this.prisma.user.findUnique({
-        where: { phoneNumber },
-      });
-      if (phoneConflict) {
-        throw new ConflictException('Phone number already exists');
-      }
-    }
-
-    // Prevent user from deactivating themselves
-    if (id === currentUserId && updateData.isActive === false) {
-      throw new ForbiddenException('You cannot deactivate your own account');
-    }
-
-    const updatedUser = await this.prisma.user.update({
-      where: { id },
-      data: {
-        ...updateData,
-        email,
-        phoneNumber,
-      },
-      include: {
-        role: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    return this.formatUserResponse(updatedUser);
-  }
 
   async remove(
     id: string,
