@@ -8,21 +8,34 @@ export class EmailService {
   private readonly sesClient: SESv2Client;
 
   constructor() {
-    // Uncomment once @aws-sdk/client-sesv2 is installed:
+    const region = process.env.AWS_REGION || 'us-west-1';
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+    if (!accessKeyId || !secretAccessKey) {
+      this.logger.warn('AWS credentials not provided. SES email functionality will be disabled.');
+    }
+
     this.sesClient = new SESv2Client({
-      region: process.env.AWS_REGION || 'us-west-1',
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      },
+      region,
+      credentials: accessKeyId && secretAccessKey ? {
+        accessKeyId,
+        secretAccessKey,
+      } : undefined,
     });
   }
 
   async sendOtpEmail(to: string, otp: string): Promise<boolean> {
     try {
       // For development, log the OTP instead of sending it
-      if (process.env.NODE_ENV === 'development') {
-        this.logger.log(`OTP for ${to}: ${otp}`);
+      // if (process.env.NODE_ENV === 'development') {
+      //   this.logger.log(`OTP for ${to}: ${otp}`);
+      //   return true;
+      // }
+
+      // Check if AWS credentials are available
+      if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+        this.logger.warn(`AWS credentials not configured. Logging OTP instead: ${otp}`);
         return true;
       }
 
