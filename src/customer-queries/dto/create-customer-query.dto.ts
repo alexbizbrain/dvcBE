@@ -1,36 +1,27 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Length,
-} from 'class-validator';
+import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateCustomerQueryDto {
-  @IsNotEmpty()
   @IsString()
-  @Length(1, 50)
-  firstName: string;
+  @MaxLength(80)
+  firstName!: string;
 
-  @IsNotEmpty()
   @IsString()
-  @Length(1, 50)
-  lastName: string;
+  @MaxLength(80)
+  lastName!: string;
 
-  @IsNotEmpty()
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(30)
   phoneNumber?: string;
 
-  @IsOptional()
   @IsString()
-  countryCode?: string = '+1';
+  @MaxLength(6)
+  countryCode!: string; // default handled at service/controller level if omitted
 
-  @IsNotEmpty()
   @IsString()
-  @Length(10, 1000)
-  message: string;
+  @MaxLength(5000)
+  message!: string;
 }

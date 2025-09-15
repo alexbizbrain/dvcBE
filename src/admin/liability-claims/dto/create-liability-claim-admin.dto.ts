@@ -14,11 +14,15 @@ export class CreateLiabilityClaimAdminDto {
   @IsIn(['us'])
   countryCode?: string;
 
-  @IsBoolean()
-  atFaultDriver: boolean;
+  @IsString()
+  atFaultDriver: string;
 
   @IsString()
   state: string;
+
+  @IsOptional()
+  @IsBoolean()
+  hitAndRun?: boolean;
 
   @IsOptional()
   @IsBoolean()

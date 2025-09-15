@@ -1,86 +1,120 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCustomerQueryDto } from './dto/create-customer-query.dto';
 import { PrismaService } from '../prisma.service';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { ListCustomerQueryDto } from './dto/list-customer-query.dto';
+import { Prisma } from '@prisma/client';
+import { UpdateCustomerQueryDto } from './dto/update-customer-query.dto';
 
 @Injectable()
 export class CustomerQueriesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
-  async create(createCustomerQueryDto: CreateCustomerQueryDto) {
-    try {
-      // Ensure countryCode has a default value if not provided
-      const data = {
-        ...createCustomerQueryDto,
-        countryCode: createCustomerQueryDto.countryCode || '+1',
-      };
-
-      const customerQuery = await this.prisma.customerQuery.create({
-        data,
-      });
-
-      return {
-        success: true,
-        message: 'Customer query created successfully',
-        data: customerQuery,
-      };
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        throw new InternalServerErrorException(
-          'Failed to create customer query: ' + error.message,
-        );
-      }
-      throw new InternalServerErrorException(
-        'An unexpected error occurred while creating the customer query',
-      );
-    }
+  async create(dto: CreateCustomerQueryDto) {
+    return this.prismaService.customerQuery.create({
+      data: {
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        email: dto.email,
+        phoneNumber: dto.phoneNumber,
+        countryCode: dto.countryCode ?? '+1',
+        message: dto.message,
+      },
+    });
   }
 
-  async findAll() {
-    try {
-      const queries = await this.prisma.customerQuery.findMany({
+  async list({ page = 1, limit = 10, q }: ListCustomerQueryDto) {
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.CustomerQueryWhereInput = q
+      ? {
+          OR: [
+            {
+              firstName: {
+                contains: q,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              lastName: {
+                contains: q,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              email: {
+                contains: q,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              phoneNumber: {
+                contains: q,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          ],
+        }
+      : {};
+
+    const [items, total] = await this.prismaService.$transaction([
+      this.prismaService.customerQuery.findMany({
+        where,
+        skip,
+        take: limit,
         orderBy: {
           createdAt: 'desc',
         },
-      });
+      }),
+      this.prismaService.customerQuery.count({
+        where,
+      }),
+    ]);
 
-      return {
-        success: true,
-        data: queries,
-        count: queries.length,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Failed to retrieve customer queries',
-      );
+    return {
+      items,
+      page,
+      limit,
+      total,
+    };
+  }
+
+  async getById(id: string) {
+    const found = await this.prismaService.customerQuery.findUnique({
+      where: { id },
+    });
+    if (!found) throw new NotFoundException('Customer query not found');
+    return found;
+  }
+
+  async update(id: string, dto: UpdateCustomerQueryDto) {
+    try {
+      return this.prismaService.customerQuery.update({
+        where: { id },
+        data: {
+          ...(dto.firstName && { firstName: dto.firstName }),
+          ...(dto.lastName && { lastName: dto.lastName }),
+          ...(dto.email && { email: dto.email }),
+          ...(dto.phoneNumber && { phoneNumber: dto.phoneNumber }),
+          ...(dto.countryCode && { countryCode: dto.countryCode }),
+          ...(dto.message && { message: dto.message }),
+        },
+      });
+    } catch {
+      throw new NotFoundException('Customer query not found');
     }
   }
 
-  async findOne(id: string) {
+  async remove(id: string) {
     try {
-      const query = await this.prisma.customerQuery.findUnique({
+      await this.prismaService.customerQuery.delete({
         where: { id },
       });
-
-      if (!query) {
-        throw new NotFoundException(`Customer query with ID ${id} not found`);
-      }
-
       return {
-        success: true,
-        data: query,
+        id,
+        deleted: true,
       };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        'Failed to retrieve customer query',
-      );
+    } catch {
+      throw new NotFoundException('Customer query not found');
     }
   }
 }

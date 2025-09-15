@@ -26,12 +26,15 @@ async function main() {
     },
   });
 
-  console.log('✅ Roles created:', { adminRole: adminRole.name, userRole: userRole.name });
+  console.log('✅ Roles created:', {
+    adminRole: adminRole.name,
+    userRole: userRole.name,
+  });
 
   // Create admin user
   console.log('Creating admin user...');
   const hashedPassword = await bcrypt.hash('Admin@123', 10);
-  
+
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@dvcc.com' },
     update: {},

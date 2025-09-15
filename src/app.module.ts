@@ -6,15 +6,25 @@ import { PrismaService } from './prisma.service';
 import { LiabilityClaimsModule } from './liability-claims/liability-claims.module';
 import { CustomerQueriesModule } from './customer-queries/customer-queries.module';
 import { AdminModule } from './admin/admin.module';
+import { UsersModule } from './users/users.module';
+import { ReviewsModule } from './admin/reviews/reviews.module';
+import { CommonModule } from './common/common.module';
+import { AuthCoreModule } from './common/auth/auth.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    CommonModule,
+    AuthCoreModule,
+    AuthModule,
     AdminModule,
     LiabilityClaimsModule,
     CustomerQueriesModule,
+    UsersModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

@@ -1,25 +1,40 @@
-import { IsString, IsBoolean, IsOptional, IsIn } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateLiabilityClaimDto {
   @IsOptional()
-  @IsString()
+  @IsEmail()
   email?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(30)
   phoneNumber?: string;
 
   @IsOptional()
   @IsString()
-  @IsIn(['us'])
-  countryCode?: string;
+  @MaxLength(3)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toLowerCase() : value,
+  )
+  countryCode?: string; // defaults to 'us' in service if omitted
 
   @IsString()
-  @IsIn(['yes', 'no'])
-  atFaultDriver: string;
+  atFaultDriver!: string;
 
   @IsString()
-  state: string;
+  @MaxLength(64)
+  state!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  hitAndRun?: string;
 
   @IsOptional()
   @IsBoolean()

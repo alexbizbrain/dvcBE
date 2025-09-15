@@ -1,11 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
-  Post,
   Param,
-  HttpStatus,
-  HttpCode,
+  Patch,
+  Post,
+  Query,
   UsePipes,
   /*************  ✨ Windsurf Command ⭐  *************/
   /**
@@ -20,6 +21,10 @@ import {
 } from '@nestjs/common';
 import { CustomerQueriesService } from './customer-queries.service';
 import { CreateCustomerQueryDto } from './dto/create-customer-query.dto';
+import { ListCustomerQueryDto } from './dto/list-customer-query.dto';
+import { Roles } from 'src/common/auth/decorators/roles.decorator';
+import { UpdateCustomerQueryDto } from './dto/update-customer-query.dto';
+import { Public } from 'src/common/auth/decorators/public.decorator';
 
 @Controller('customer-queries')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
@@ -28,19 +33,36 @@ export class CustomerQueriesController {
     private readonly customerQueriesService: CustomerQueriesService,
   ) {}
 
+  @Public()
   @Post()
-  @HttpCode(HttpStatus.CREATED)
-  create(@Body() createCustomerQueryDto: CreateCustomerQueryDto) {
-    return this.customerQueriesService.create(createCustomerQueryDto);
+  async create(@Body() dto: CreateCustomerQueryDto) {
+    if (!dto.countryCode) dto.countryCode = '+1';
+    return this.customerQueriesService.create(dto);
   }
 
   @Get()
-  findAll() {
-    return this.customerQueriesService.findAll();
+  async list(@Query() query: ListCustomerQueryDto) {
+    return this.customerQueriesService.list(query);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.customerQueriesService.findOne(id);
+  async getById(@Param('id') id: string) {
+    return this.customerQueriesService.getById(id);
+  }
+
+  @Patch(':id')
+  @Roles('admin')
+  async update(@Param('id') id: string, @Body() dto: UpdateCustomerQueryDto) {
+    return this.customerQueriesService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @Roles('admin')
+  async remove(@Param('id') id: string) {
+    await this.customerQueriesService.remove(id);
+    return {
+      id,
+      deleted: true,
+    };
   }
 }

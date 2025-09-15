@@ -11,11 +11,13 @@ import {
 import { AdminAuthService, AdminLoginResponse } from './admin-auth.service';
 import { JwtAuthGuard, LocalAuthGuard } from './admin-auth.guards';
 import { AdminLoginDto } from './dto/admin-auth.dto';
+import { Public } from 'src/common/auth/decorators/public.decorator';
 
 @Controller('admin/auth')
 export class AdminAuthController {
   constructor(private adminAuthService: AdminAuthService) {}
 
+  @Public()
   @UseGuards(LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -23,6 +25,8 @@ export class AdminAuthController {
     @Request() req,
     @Body() adminLoginDto: AdminLoginDto,
   ): Promise<AdminLoginResponse> {
+    console.log(req.user);
+    console.log(adminLoginDto);
     return this.adminAuthService.login(req.user);
   }
 
