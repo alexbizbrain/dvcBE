@@ -13,15 +13,20 @@ export class EmailService {
     const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 
     if (!accessKeyId || !secretAccessKey) {
-      this.logger.warn('AWS credentials not provided. SES email functionality will be disabled.');
+      this.logger.warn(
+        'AWS credentials not provided. SES email functionality will be disabled.',
+      );
     }
 
     this.sesClient = new SESv2Client({
       region,
-      credentials: accessKeyId && secretAccessKey ? {
-        accessKeyId,
-        secretAccessKey,
-      } : undefined,
+      credentials:
+        accessKeyId && secretAccessKey
+          ? {
+              accessKeyId,
+              secretAccessKey,
+            }
+          : undefined,
     });
   }
 
@@ -34,8 +39,13 @@ export class EmailService {
       // }
 
       // Check if AWS credentials are available
-      if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-        this.logger.warn(`AWS credentials not configured. Logging OTP instead: ${otp}`);
+      if (
+        !process.env.AWS_ACCESS_KEY_ID ||
+        !process.env.AWS_SECRET_ACCESS_KEY
+      ) {
+        this.logger.warn(
+          `AWS credentials not configured. Logging OTP instead: ${otp}`,
+        );
         return true;
       }
 
@@ -74,7 +84,7 @@ export class EmailService {
       });
 
       await this.sesClient.send(sendEmailCommand);
-      
+
       this.logger.log(`Email sent successfully to ${to}`);
       return true;
     } catch (error) {

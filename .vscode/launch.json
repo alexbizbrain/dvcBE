@@ -14,10 +14,7 @@
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "skipFiles": [
-        "<node_internals>/**",
-        "node_modules/**"
-      ],
+      "skipFiles": ["<node_internals>/**", "node_modules/**"],
       "sourceMaps": true,
       "restart": true,
       "resolveSourceMapLocations": [

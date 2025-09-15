@@ -59,6 +59,8 @@ export class AdminAuthService {
       role: user.role.name,
     };
 
+    console.log(payload);
+
     return {
       success: true,
       accessToken: this.jwtService.sign(payload),

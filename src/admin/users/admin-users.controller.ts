@@ -16,7 +16,10 @@ import { AdminUsersService } from './admin-users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserQueryDto } from './dto/user-query.dto';
-import { UserResponseDto, PaginatedUsersResponseDto } from './dto/user-response.dto';
+import {
+  UserResponseDto,
+  PaginatedUsersResponseDto,
+} from './dto/user-response.dto';
 import { BulkActionDto } from './dto/bulk-action.dto';
 
 @Controller('admin/users')
@@ -163,7 +166,7 @@ export class AdminUsersController {
   }
 
   @Delete(':id')
-//   @HttpCode(HttpStatus.NO_CONTENT)
+  //   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteUser(@Param('id') id: string): Promise<any> {
     await this.adminUsersService.deleteUser(id);
     return {
@@ -173,4 +176,3 @@ export class AdminUsersController {
     };
   }
 }
-

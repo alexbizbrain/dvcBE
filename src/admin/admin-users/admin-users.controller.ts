@@ -36,21 +36,21 @@ export class AdminUsersController {
     };
   }
 
- @Get()
-async findAll(@Query() query: AdminQueryDto) {
-  const result = await this.adminUsersService.findAll(query);
-  return {
-    success: true,
-    message: 'Admin users retrieved successfully',
-    data: {
-      users: result.users,
-      total: result.total,
-      page: result.page,
-      limit: result.limit,
-      totalPages: result.totalPages,
-    },
-  };
-}
+  @Get()
+  async findAll(@Query() query: AdminQueryDto) {
+    const result = await this.adminUsersService.findAll(query);
+    return {
+      success: true,
+      message: 'Admin users retrieved successfully',
+      data: {
+        users: result.users,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
+    };
+  }
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
@@ -61,7 +61,6 @@ async findAll(@Query() query: AdminQueryDto) {
       data: user,
     };
   }
-
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
@@ -78,7 +77,10 @@ async findAll(@Query() query: AdminQueryDto) {
     @Param('id') id: string,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    const result = await this.adminUsersService.changePassword(id, changePasswordDto);
+    const result = await this.adminUsersService.changePassword(
+      id,
+      changePasswordDto,
+    );
     return {
       statusCode: HttpStatus.OK,
       message: result.message,

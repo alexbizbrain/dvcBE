@@ -1,9 +1,16 @@
 // src/admin/reviews/admin-reviews.service.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 // import { PrismaService } from '../../prisma/prisma.service';
 import { ReviewDto } from './dto/review.dto';
 import { ReviewQueryDto } from './dto/review-query.dto';
-import { ReviewResponseDto, PaginatedReviewsResponseDto } from './dto/review-response.dto';
+import {
+  ReviewResponseDto,
+  PaginatedReviewsResponseDto,
+} from './dto/review-response.dto';
 import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
@@ -25,7 +32,9 @@ export class AdminReviewsService {
 
       // Generate initials if not provided
       if (!reviewDto.customerInitials) {
-        reviewDto.customerInitials = this.generateInitials(reviewDto.customerName);
+        reviewDto.customerInitials = this.generateInitials(
+          reviewDto.customerName,
+        );
       }
 
       const review = await this.prisma.review.create({
@@ -41,12 +50,14 @@ export class AdminReviewsService {
 
       return this.mapToResponseDto(review);
     } catch (error) {
-      console.log(error)
+      console.log(error);
       throw new BadRequestException('Failed to create review');
     }
   }
 
-  async findAllReviews(query: ReviewQueryDto): Promise<PaginatedReviewsResponseDto> {
+  async findAllReviews(
+    query: ReviewQueryDto,
+  ): Promise<PaginatedReviewsResponseDto> {
     const { page = 1, limit = 10, search, source, rating } = query;
     const skip = (page - 1) * limit;
 
@@ -73,10 +84,7 @@ export class AdminReviewsService {
         where,
         skip,
         take: limit,
-        orderBy: [
-          { displayOrder: 'asc' },
-          { createdAt: 'desc' }
-        ],
+        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
       }),
       this.prisma.review.count({ where }),
     ]);
@@ -84,7 +92,7 @@ export class AdminReviewsService {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      reviews: reviews.map(review => this.mapToResponseDto(review)),
+      reviews: reviews.map((review) => this.mapToResponseDto(review)),
       total,
       page,
       limit,
@@ -104,7 +112,10 @@ export class AdminReviewsService {
     return this.mapToResponseDto(review);
   }
 
-  async updateReview(id: string, reviewDto: ReviewDto): Promise<ReviewResponseDto> {
+  async updateReview(
+    id: string,
+    reviewDto: ReviewDto,
+  ): Promise<ReviewResponseDto> {
     const existingReview = await this.prisma.review.findUnique({
       where: { id },
     });
@@ -116,17 +127,23 @@ export class AdminReviewsService {
     try {
       // Generate initials if customerName is being updated and initials not provided
       if (reviewDto.customerName && !reviewDto.customerInitials) {
-        reviewDto.customerInitials = this.generateInitials(reviewDto.customerName);
+        reviewDto.customerInitials = this.generateInitials(
+          reviewDto.customerName,
+        );
       }
 
       // Build update data, filtering out undefined values
       const updateData: any = {};
-      if (reviewDto.customerName !== undefined) updateData.customerName = reviewDto.customerName;
-      if (reviewDto.customerInitials !== undefined) updateData.customerInitials = reviewDto.customerInitials;
+      if (reviewDto.customerName !== undefined)
+        updateData.customerName = reviewDto.customerName;
+      if (reviewDto.customerInitials !== undefined)
+        updateData.customerInitials = reviewDto.customerInitials;
       if (reviewDto.rating !== undefined) updateData.rating = reviewDto.rating;
-      if (reviewDto.reviewText !== undefined) updateData.reviewText = reviewDto.reviewText;
+      if (reviewDto.reviewText !== undefined)
+        updateData.reviewText = reviewDto.reviewText;
       if (reviewDto.source !== undefined) updateData.source = reviewDto.source;
-      if (reviewDto.displayOrder !== undefined) updateData.displayOrder = reviewDto.displayOrder;
+      if (reviewDto.displayOrder !== undefined)
+        updateData.displayOrder = reviewDto.displayOrder;
 
       const updatedReview = await this.prisma.review.update({
         where: { id },
@@ -170,16 +187,17 @@ export class AdminReviewsService {
       }),
     ]);
 
-    const averageRating = ratings.length > 0 
-      ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length 
-      : 0;
+    const averageRating =
+      ratings.length > 0
+        ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
+        : 0;
 
-    const ratingDistribution = [1, 2, 3, 4, 5].map(rating => ({
+    const ratingDistribution = [1, 2, 3, 4, 5].map((rating) => ({
       rating,
-      count: ratings.filter(r => r.rating === rating).length,
+      count: ratings.filter((r) => r.rating === rating).length,
     }));
 
-    const sourceDistribution = sources.map(s => ({
+    const sourceDistribution = sources.map((s) => ({
       source: s.source,
       count: s._count.source,
     }));
@@ -195,7 +213,7 @@ export class AdminReviewsService {
   private generateInitials(name: string): string {
     return name
       .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
+      .map((word) => word.charAt(0).toUpperCase())
       .slice(0, 2)
       .join('');
   }

@@ -15,7 +15,10 @@ import {
 import { AdminReviewsService } from './admin-reviews.service';
 import { ReviewDto } from './dto/review.dto';
 import { ReviewQueryDto } from './dto/review-query.dto';
-import { ReviewResponseDto, PaginatedReviewsResponseDto } from './dto/review-response.dto';
+import {
+  ReviewResponseDto,
+  PaginatedReviewsResponseDto,
+} from './dto/review-response.dto';
 
 @Controller('admin/reviews')
 // @UseGuards(AdminGuard) // Uncomment when you implement admin authentication

@@ -152,7 +152,6 @@ export class AdminUsersService {
     return this.formatUserResponse(user);
   }
 
-
   async remove(
     id: string,
     currentUserId: string,
@@ -166,13 +165,12 @@ export class AdminUsersService {
     }
 
     // Protected emails that cannot be deleted
-    const protectedEmails = [
-      'admin@dvcc.com',
-      'abdulwajid2818@gmail.com'
-    ];
+    const protectedEmails = ['admin@dvcc.com', 'abdulwajid2818@gmail.com'];
 
     if (user.email && protectedEmails.includes(user.email.toLowerCase())) {
-      throw new ForbiddenException('This admin account is protected and cannot be deleted');
+      throw new ForbiddenException(
+        'This admin account is protected and cannot be deleted',
+      );
     }
 
     // Soft delete: set isActive to false

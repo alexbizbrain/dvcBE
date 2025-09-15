@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsBoolean, IsInt, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { BooleanTransform } from 'src/utils/transform.util';
 
@@ -7,7 +14,7 @@ export class UserQueryDto {
   @IsInt()
   @Min(1)
   @Type(() => Number)
-//   @Transform(({ value }) => parseInt(value))
+  //   @Transform(({ value }) => parseInt(value))
   page?: number = 1;
 
   @IsOptional()
@@ -36,8 +43,8 @@ export class UserQueryDto {
   isPhoneVerified?: boolean;
 
   @IsOptional()
-//   @IsBoolean()
-//   @BooleanTransform()
+  //   @IsBoolean()
+  //   @BooleanTransform()
   @Transform(({ value }) => value === 'true')
   isBusinessUser?: boolean;
 

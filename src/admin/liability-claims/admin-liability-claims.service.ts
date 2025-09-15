@@ -41,7 +41,7 @@ export class AdminLiabilityClaimsService {
           email: createDto.email,
           phoneNumber: createDto.phoneNumber,
           countryCode: createDto.countryCode || 'us',
-          atFaultDriver: createDto.atFaultDriver,
+          atFaultDriver: createDto.atFaultDriver === 'yes',
           state: createDto.state,
           agreeToEmails: createDto.agreeToEmails || false,
           agreeToSms: createDto.agreeToSms || false,
@@ -167,7 +167,7 @@ export class AdminLiabilityClaimsService {
           hasPrev: page > 1,
         },
       };
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException(
         'Failed to retrieve liability claims',
       );

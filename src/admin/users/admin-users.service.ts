@@ -1,9 +1,17 @@
 // src/admin/users/admin-users.service.ts
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserQueryDto } from './dto/user-query.dto';
-import { UserResponseDto, PaginatedUsersResponseDto } from './dto/user-response.dto';
+import {
+  UserResponseDto,
+  PaginatedUsersResponseDto,
+} from './dto/user-response.dto';
 import { BulkActionDto } from './dto/bulk-action.dto';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/prisma.service';
@@ -15,7 +23,7 @@ export class AdminUsersService {
   async createUser(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     // Get USER role
     const userRole = await this.getUserRole();
-    
+
     // Check for existing email or phone
     await this.checkDuplicates(createUserDto.email, createUserDto.phoneNumber);
 
@@ -46,7 +54,16 @@ export class AdminUsersService {
   }
 
   async findAllUsers(query: UserQueryDto): Promise<PaginatedUsersResponseDto> {
-    const { page = 1, limit = 10, search, isActive, isEmailVerified, isPhoneVerified, isBusinessUser, countryCode } = query;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      isActive,
+      isEmailVerified,
+      isPhoneVerified,
+      isBusinessUser,
+      countryCode,
+    } = query;
     const skip = (page - 1) * limit;
 
     // Get USER role to filter by
@@ -103,7 +120,7 @@ export class AdminUsersService {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      users: users.map(user => this.mapToResponseDto(user)),
+      users: users.map((user) => this.mapToResponseDto(user)),
       total,
       page,
       limit,
@@ -113,9 +130,9 @@ export class AdminUsersService {
 
   async findOneUser(id: string): Promise<UserResponseDto> {
     const userRole = await this.getUserRole();
-    
+
     const user = await this.prisma.user.findFirst({
-      where: { 
+      where: {
         id,
         roleId: userRole.id, // Only users with USER role
       },
@@ -133,12 +150,15 @@ export class AdminUsersService {
     return this.mapToResponseDto(user);
   }
 
-  async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
+  async updateUser(
+    id: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
     const userRole = await this.getUserRole();
-    
+
     // Check if user exists and is a regular user
     const existingUser = await this.prisma.user.findFirst({
-      where: { 
+      where: {
         id,
         roleId: userRole.id,
       },
@@ -153,7 +173,7 @@ export class AdminUsersService {
       await this.checkDuplicates(
         updateUserDto.email,
         updateUserDto.phoneNumber,
-        id
+        id,
       );
     }
 
@@ -184,9 +204,9 @@ export class AdminUsersService {
 
   async deleteUser(id: string): Promise<void> {
     const userRole = await this.getUserRole();
-    
+
     const existingUser = await this.prisma.user.findFirst({
-      where: { 
+      where: {
         id,
         roleId: userRole.id,
       },
@@ -204,9 +224,9 @@ export class AdminUsersService {
 
   async toggleUserStatus(id: string): Promise<UserResponseDto> {
     const userRole = await this.getUserRole();
-    
+
     const existingUser = await this.prisma.user.findFirst({
-      where: { 
+      where: {
         id,
         roleId: userRole.id,
       },
@@ -227,23 +247,23 @@ export class AdminUsersService {
     });
 
     return this.mapToResponseDto(updatedUser);
-  } 
+  }
 
-  async bulkAction(bulkActionDto: BulkActionDto): Promise<{ 
-    success: number; 
-    failed: number; 
-    message: string; 
+  async bulkAction(bulkActionDto: BulkActionDto): Promise<{
+    success: number;
+    failed: number;
+    message: string;
   }> {
     const { userIds, action } = bulkActionDto;
     const userRole = await this.getUserRole();
-    
+
     let success = 0;
     let failed = 0;
 
     for (const userId of userIds) {
       try {
         const user = await this.prisma.user.findFirst({
-          where: { 
+          where: {
             id: userId,
             roleId: userRole.id,
           },
@@ -312,21 +332,29 @@ export class AdminUsersService {
       countryData,
     ] = await Promise.all([
       this.prisma.user.count({ where: { roleId: userRole.id } }),
-      this.prisma.user.count({ where: { roleId: userRole.id, isActive: true } }),
-      this.prisma.user.count({ where: { roleId: userRole.id, isEmailVerified: true } }),
-      this.prisma.user.count({ where: { roleId: userRole.id, isPhoneVerified: true } }),
-      this.prisma.user.count({ where: { roleId: userRole.id, isBusinessUser: true } }),
-      this.prisma.user.count({ 
-        where: { 
+      this.prisma.user.count({
+        where: { roleId: userRole.id, isActive: true },
+      }),
+      this.prisma.user.count({
+        where: { roleId: userRole.id, isEmailVerified: true },
+      }),
+      this.prisma.user.count({
+        where: { roleId: userRole.id, isPhoneVerified: true },
+      }),
+      this.prisma.user.count({
+        where: { roleId: userRole.id, isBusinessUser: true },
+      }),
+      this.prisma.user.count({
+        where: {
           roleId: userRole.id,
-          createdAt: { gte: sevenDaysAgo }
-        }
+          createdAt: { gte: sevenDaysAgo },
+        },
       }),
       this.prisma.user.groupBy({
         by: ['countryCode'],
-        where: { 
+        where: {
           roleId: userRole.id,
-          countryCode: { not: null }
+          countryCode: { not: null },
         },
         _count: { countryCode: true },
         orderBy: { _count: { countryCode: 'desc' } },
@@ -336,7 +364,7 @@ export class AdminUsersService {
 
     const inactive = total - active;
 
-    const countryDistribution = countryData.map(item => ({
+    const countryDistribution = countryData.map((item) => ({
       country: item.countryCode || 'Unknown',
       count: item._count.countryCode,
     }));
@@ -353,19 +381,21 @@ export class AdminUsersService {
     };
   }
 
-  async getUserOtps(userId: string): Promise<{
-    id: string;
-    code: string;
-    type: string;
-    isUsed: boolean;
-    expiresAt: Date;
-    createdAt: Date;
-  }[]> {
+  async getUserOtps(userId: string): Promise<
+    {
+      id: string;
+      code: string;
+      type: string;
+      isUsed: boolean;
+      expiresAt: Date;
+      createdAt: Date;
+    }[]
+  > {
     const userRole = await this.getUserRole();
-    
+
     // Verify user exists and is a regular user
     const user = await this.prisma.user.findFirst({
-      where: { 
+      where: {
         id: userId,
         roleId: userRole.id,
       },
@@ -396,7 +426,11 @@ export class AdminUsersService {
     return userRole;
   }
 
-  private async checkDuplicates(email?: string, phoneNumber?: string, excludeId?: string) {
+  private async checkDuplicates(
+    email?: string,
+    phoneNumber?: string,
+    excludeId?: string,
+  ) {
     if (email) {
       const existingEmail = await this.prisma.user.findFirst({
         where: {

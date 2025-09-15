@@ -5,15 +5,21 @@ import { AdminLiabilityClaimsModule } from './liability-claims/admin-liability-c
 import { AdminReviewsModule } from './reviews/admin-reviews.module';
 import { AdminUsersModule } from './users/admin-users.module';
 import { AdminCrudModule } from './admin-users/admin-users.module';
+import { AdminController } from './admin.controller';
+import { AdminService } from './admin.service';
+import { PrismaService } from 'src/prisma.service';
 
 @Module({
+  controllers: [AdminController],
   imports: [
     AdminAuthModule,
     AdminCustomerQueriesModule,
     AdminLiabilityClaimsModule,
     AdminReviewsModule,
     AdminUsersModule,
-    AdminCrudModule
+    AdminCrudModule,
   ],
+  providers: [AdminService, PrismaService],
+  exports: [AdminService],
 })
 export class AdminModule {}

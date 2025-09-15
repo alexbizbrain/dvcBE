@@ -8,17 +8,23 @@ import { CustomerQueriesModule } from './customer-queries/customer-queries.modul
 import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
 import { ReviewsModule } from './admin/reviews/reviews.module';
+import { CommonModule } from './common/common.module';
+import { AuthCoreModule } from './common/auth/auth.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    CommonModule,
+    AuthCoreModule,
+    AuthModule,
     AdminModule,
     LiabilityClaimsModule,
     CustomerQueriesModule,
     UsersModule,
-    ReviewsModule
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

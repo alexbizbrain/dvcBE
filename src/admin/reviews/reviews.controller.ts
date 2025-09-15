@@ -1,4 +1,3 @@
-
 // src/reviews/reviews.controller.ts (Public endpoint for frontend)
 import { Controller, Get, Query } from '@nestjs/common';
 import { ReviewResponseDto } from './dto/review-response.dto';
@@ -10,11 +9,9 @@ export class ReviewsController {
   constructor(private readonly adminReviewsService: AdminReviewsService) {}
 
   @Get()
-  async getPublicReviews(@Query() query: { 
-    limit?: number; 
-    source?: string; 
-    rating?: number;
-  }): Promise<{
+  async getPublicReviews(
+    @Query() query: { limit?: number; source?: string; rating?: number },
+  ): Promise<{
     success: boolean;
     message: string;
     data: {

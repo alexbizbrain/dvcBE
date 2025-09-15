@@ -1,111 +1,168 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateLiabilityClaimDto } from './dto/create-liability-claim.dto';
+import { UsersService } from 'src/users/users.service';
+import { EnsureUserResult } from './types/liability-claim.type';
+import { ListLiabilityClaimDto } from './dto/list-liability-claim.dto';
+import { Prisma } from '@prisma/client';
+import { UpdateLiabilityClaimDto } from './dto/update-liability-claim.dto';
 
 @Injectable()
 export class LiabilityClaimsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly usersService: UsersService,
+  ) {}
 
-  async create(createLiabilityClaimDto: CreateLiabilityClaimDto) {
-    const { atFaultDriver, ...rest } = createLiabilityClaimDto;
+  private normalizeState(state: string) {
+    return state.trim().toLowerCase();
+  }
 
-    // Validate that either email or phone is provided
-    if (!rest.email && !rest.phoneNumber) {
-      throw new BadRequestException('Either email or phone number is required');
-    }
+  private isNotAllowedState(state: string) {
+    const s = this.normalizeState(state);
+    return (
+      s === 'new york' || s === 'north carolina' || s === 'ny' || s === 'nc'
+    );
+  }
 
-    // Convert atFaultDriver string to boolean
-    const atFaultDriverBool = atFaultDriver === 'yes';
-    
-    // Check eligibility based on frontend criteria (lines 103-114)
-    const isStateRestricted = rest.state === "New York" || rest.state === "North Carolina";
-    const isAtFault = atFaultDriver === "yes";
-    const isEligible = !isStateRestricted && !isAtFault;
+  private async ensureUser(
+    email?: string,
+    phoneNumber?: string,
+    countryCode?: string,
+  ): Promise<EnsureUserResult> {
+    if (!email && !phoneNumber) return { id: null, existed: false };
 
+    const { exists, user } = await this.usersService.checkUserExists(
+      email,
+      phoneNumber,
+    );
+    if (exists && user) return { id: user.id, existed: true };
+
+    const created = await this.usersService.createUser({
+      email,
+      phoneNumber,
+      countryCode: countryCode,
+      isActive: true,
+    });
+    return { id: created.id, existed: false };
+  }
+
+  private computeEligibility(atFaultDriver: string, state: string) {
+    const reasons: string[] = [];
+    if (atFaultDriver !== 'no') reasons.push('atFaultDriver must be no');
+    if (this.isNotAllowedState(state))
+      reasons.push('state must be rather then New York or North Carolina');
+    return { eligible: reasons.length === 0, reasons };
+  }
+
+  async create(dto: CreateLiabilityClaimDto) {
     try {
-      let userId: string = "";
+      const countryCode = (dto.countryCode ?? 'us').toLowerCase();
+      const eligibility = this.computeEligibility(
+        dto.atFaultDriver.toString(),
+        dto.state,
+      );
+      const ensuredUser = await this.ensureUser(
+        dto.email,
+        dto.phoneNumber,
+        countryCode,
+      );
 
-      // If eligible, create or find user
-      if (isEligible) {
-        // Check if user already exists
-        const existingUser = await this.prisma.user.findFirst({
-          where: {
-            OR: [
-              rest.email ? { email: rest.email } : {},
-              rest.phoneNumber ? { phoneNumber: rest.phoneNumber } : {}
-            ].filter(condition => Object.keys(condition).length > 0)
-          }
-        });
-
-        if (existingUser) {
-          userId = existingUser.id;
-        } else {
-          // Get or create default USER role
-          let userRole = await this.prisma.role.findFirst({
-            where: { name: 'USER' }
-          });
-          
-          if (!userRole) {
-            userRole = await this.prisma.role.create({
-              data: {
-                name: 'USER',
-                isActive: true
-              }
-            });
-          }
-          console.log("rest.phoneNumber")
-          console.log(rest.phoneNumber)
-
-          // Create new user
-          const newUser = await this.prisma.user.create({
-            data: {
-              email: rest.email,
-              phoneNumber: rest.phoneNumber,
-              countryCode: rest.countryCode === 'us' ? '+1' : rest.countryCode,
-              roleId: userRole.id,
-              isBusinessUser: false,
-            }
-          });
-          
-          userId = newUser.id;
-        }
-      }
-
-      const liabilityClaim = await this.prisma.liabilityClaim.create({
+      const claim = await this.prisma.liabilityClaim.create({
         data: {
-          ...rest,
-          atFaultDriver: atFaultDriverBool,
-          countryCode: rest.countryCode || 'us',
-          hitAndRun: rest.hitAndRun || false,
-          agreeToEmails: rest.agreeToEmails || false,
-          agreeToSms: rest.agreeToSms || false,
+          email: dto.email ?? null,
+          countryCode,
+          atFaultDriver: dto.atFaultDriver === 'no',
+          state: dto.state,
+          hitAndRun: dto.hitAndRun === 'no',
+          agreeToEmails: dto.agreeToEmails ?? false,
+          agreeToSms: dto.agreeToSms ?? false,
         },
       });
 
-      return liabilityClaim;
+      return {
+        claim,
+        eligibility,
+        user: { id: ensuredUser.id, existed: ensuredUser.existed },
+      };
     } catch (error) {
-      console.error('Error creating liability claim:', error);
-      throw new BadRequestException('Failed to create liability claim');
+      console.error(error);
     }
   }
 
-  async findAll() {
-    return this.prisma.liabilityClaim.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+  async list({
+    page = 1,
+    limit = 10,
+    q,
+    state,
+    countryCode,
+    atFaultDriver,
+    hitAndRun,
+    agreeToEmails,
+    agreeToSms,
+  }: ListLiabilityClaimDto) {
+    const skip = (page - 1) * limit;
+    const where: Prisma.LiabilityClaimWhereInput = {};
+    if (q) {
+      where.OR = [
+        { email: { contains: q, mode: 'insensitive' } },
+        { phoneNumber: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+    if (state) where.state = { contains: state, mode: 'insensitive' };
+    if (countryCode) where.countryCode = countryCode.toLowerCase();
+    if (typeof atFaultDriver === 'boolean') where.atFaultDriver = atFaultDriver;
+    if (typeof hitAndRun === 'boolean') where.hitAndRun = hitAndRun;
+    if (typeof agreeToEmails === 'boolean') where.agreeToEmails = agreeToEmails;
+    if (typeof agreeToSms === 'boolean') where.agreeToSms = agreeToSms;
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.liabilityClaim.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.liabilityClaim.count({ where }),
+    ]);
+
+    return { items, page, limit, total };
   }
 
-  async findOne(id: string) {
-    const claim = await this.prisma.liabilityClaim.findUnique({
+  async getById(id: string) {
+    const found = await this.prisma.liabilityClaim.findUnique({
       where: { id },
     });
+    if (!found) throw new NotFoundException('Liability claim not found');
+    return found;
+  }
 
-    if (!claim) {
-      throw new BadRequestException('Liability claim not found');
+  async update(id: string, dto: UpdateLiabilityClaimDto) {
+    try {
+      return await this.prisma.liabilityClaim.update({
+        where: { id },
+        data: {
+          email: dto.email,
+          phoneNumber: dto.phoneNumber,
+          countryCode: dto.countryCode?.toLowerCase(),
+          atFaultDriver: dto.atFaultDriver,
+          state: dto.state,
+          hitAndRun: dto.hitAndRun,
+          agreeToEmails: dto.agreeToEmails,
+          agreeToSms: dto.agreeToSms,
+        },
+      });
+    } catch {
+      throw new NotFoundException('Liability claim not found');
     }
+  }
 
-    return claim;
+  async remove(id: string) {
+    try {
+      await this.prisma.liabilityClaim.delete({ where: { id } });
+      return { id, deleted: true };
+    } catch {
+      throw new NotFoundException('Liability claim not found');
+    }
   }
 }
