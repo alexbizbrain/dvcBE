@@ -25,8 +25,6 @@ export class AdminAuthController {
     @Request() req,
     @Body() adminLoginDto: AdminLoginDto,
   ): Promise<AdminLoginResponse> {
-    console.log(req.user);
-    console.log(adminLoginDto);
     return this.adminAuthService.login(req.user);
   }
 
