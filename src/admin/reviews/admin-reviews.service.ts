@@ -50,7 +50,6 @@ export class AdminReviewsService {
 
       return this.mapToResponseDto(review);
     } catch (error) {
-      console.log(error);
       throw new BadRequestException('Failed to create review');
     }
   }

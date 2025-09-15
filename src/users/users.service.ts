@@ -15,8 +15,11 @@ import { SendOtpDto } from './dto/send-otp.dto';
 
 @Injectable()
 export class UsersService {
-  private OTP_TTL_MIN = 10;
-  private OTP_MIN_INTERVAL_SEC = 60;
+  private readonly OTP_TTL_MIN = 10; // code lives 10 minutes
+  private readonly OTP_MIN_INTERVAL_SEC = 60; // at least 60s between sends
+  private readonly OTP_MAX_PER_WINDOW = 3; // max 3 sends...
+  private readonly OTP_WINDOW_MIN = 15; // ...per 15 minutes
+  private readonly LIMIT_PER_CHANNEL = false;
 
   constructor(
     private prismaService: PrismaService,
@@ -85,91 +88,134 @@ export class UsersService {
 
   async sendOtp(dto: SendOtpDto) {
     const { email, phoneNumber } = dto;
-    if (!email && !phoneNumber)
+    if (!email && !phoneNumber) {
       throw new BadRequestException(
         'Either email or phone number must be provided',
       );
+    }
 
+    // --- resolve user ---
     const or: Prisma.UserWhereInput[] = [];
     if (email) or.push({ email });
     if (phoneNumber) or.push({ phoneNumber });
 
-    const user = await this.prismaService.user.findFirst({
-      where: { OR: or },
-    });
-
+    const user = await this.prismaService.user.findFirst({ where: { OR: or } });
     if (!user) throw new NotFoundException('User not found');
 
-    const lastOtp = await this.prismaService.otp.findFirst({
-      where: {
-        userId: user.id,
-        isUsed: false,
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        createdAt: true,
-      },
-      take: 1,
-    });
+    const now = new Date();
+    const channel: 'email' | 'phone' = email ? 'email' : 'phone';
+    const windowMs = this.OTP_WINDOW_MIN * 60 * 1000;
+    const windowStart = new Date(now.getTime() - windowMs);
 
-    if (lastOtp) {
-      const diffSec = (Date.now() - lastOtp.createdAt.getTime()) / 1000;
-      if (diffSec < this.OTP_MIN_INTERVAL_SEC) {
-        throw new TooManyRequestsException({
-          message: 'OTP already sent recently. Please wait a moment',
-          $metadata: {
-            httpStatusCode: 429,
+    // Do all checks and creation inside a serializable transaction
+    const result = await this.prismaService.$transaction(
+      async (tx) => {
+        // --- rolling window cap ---
+        const whereBase: Prisma.OtpWhereInput = {
+          userId: user.id,
+          createdAt: { gte: windowStart },
+        };
+        if (this.LIMIT_PER_CHANNEL) {
+          whereBase.type = channel;
+        }
+
+        const recentCount = await tx.otp.count({ where: whereBase });
+        if (recentCount >= this.OTP_MAX_PER_WINDOW) {
+          // Find the oldest OTP in the window to compute accurate remaining time
+          const oldestInWindow = await tx.otp.findFirst({
+            where: whereBase,
+            orderBy: { createdAt: 'asc' },
+            select: { createdAt: true },
+          });
+
+          const resetMs = oldestInWindow
+            ? oldestInWindow.createdAt.getTime() + windowMs - now.getTime()
+            : windowMs;
+
+          const remainingSec = Math.max(0, Math.ceil(resetMs / 1000));
+
+          throw new TooManyRequestsException({
+            message: `OTP send limit reached. Try again in ${remainingSec}s`,
+            $metadata: { httpStatusCode: 429 },
+          });
+        }
+
+        // --- per-send minimum interval ---
+        const lastActive = await tx.otp.findFirst({
+          where: { userId: user.id, isUsed: false },
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true },
+          take: 1,
+        });
+
+        if (lastActive) {
+          const diffSec =
+            (now.getTime() - lastActive.createdAt.getTime()) / 1000;
+          if (diffSec < this.OTP_MIN_INTERVAL_SEC) {
+            const waitSec = Math.ceil(this.OTP_MIN_INTERVAL_SEC - diffSec);
+            throw new TooManyRequestsException({
+              message: `OTP already sent recently. Please wait ${waitSec}s`,
+              $metadata: { httpStatusCode: 429 },
+            });
+          }
+        }
+
+        // --- invalidate active codes ---
+        await tx.otp.updateMany({
+          where: {
+            userId: user.id,
+            isUsed: false,
+            expiresAt: { gt: now },
+          },
+          data: { isUsed: true },
+        });
+
+        // --- create new OTP ---
+        const otpCode = this.generateOtp();
+        const expiresAt = new Date(
+          now.getTime() + this.OTP_TTL_MIN * 60 * 1000,
+        );
+
+        await tx.otp.create({
+          data: {
+            code: otpCode,
+            type: channel,
+            userId: user.id,
+            expiresAt,
           },
         });
-      }
-    }
 
-    const otpCode = this.generateOtp();
-    const expiresAt = new Date(Date.now() + this.OTP_TTL_MIN * 60 * 1000);
+        return {
+          otpCode,
+          recentCountAfterCreate: recentCount + 1,
+        };
+      },
+      { isolationLevel: 'Serializable' },
+    );
 
-    await this.prismaService.otp.updateMany({
-      where: {
-        userId: user.id,
-        isUsed: false,
-        expiresAt: {
-          gt: new Date(),
-        },
-      },
-      data: {
-        isUsed: true,
-      },
-    });
-
-    await this.prismaService.otp.create({
-      data: {
-        code: otpCode,
-        type: email ? 'email' : 'phone',
-        userId: user.id,
-        expiresAt,
-      },
-    });
+    // --- send notification OUTSIDE txn ---
+    const responseBase = {
+      success: true,
+      remainingSendsInWindow: Math.max(
+        0,
+        this.OTP_MAX_PER_WINDOW - result.recentCountAfterCreate,
+      ),
+      windowMinutes: this.OTP_WINDOW_MIN,
+      minIntervalSec: this.OTP_MIN_INTERVAL_SEC,
+      developmentOtp:
+        process.env.NODE_ENV === 'development' ? result.otpCode : undefined,
+    } as const;
 
     if (email) {
-      const ok = await this.emailService.sendOtpEmail(email, otpCode);
+      const ok = await this.emailService.sendOtpEmail(email, result.otpCode);
       if (!ok) throw new BadRequestException('Failed to send OTP email');
-      console.log(`OTP for ${email}: ${otpCode}`);
-      return {
-        success: true,
-        message: `OTP sent to ${email}`,
-        developmentOtp:
-          process.env.NODE_ENV === 'development' ? otpCode : undefined,
-      };
+      return { ...responseBase, message: `OTP sent to ${email}` };
     }
 
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`OTP for ${phoneNumber}: ${otpCode}`);
+      console.log(`OTP for ${phoneNumber}: ${result.otpCode}`);
     }
-    return {
-      success: true,
-      message: `OTP sent to ${phoneNumber}`,
-      developmentOtp:
-        process.env.NODE_ENV === 'development' ? otpCode : undefined,
-    };
+    return { ...responseBase, message: `OTP sent to ${phoneNumber}` };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
@@ -177,8 +223,6 @@ export class UsersService {
     if (!email && !phoneNumber) {
       throw new Error('Either email or phone number must be provided');
     }
-
-    console.log(email, dto.otp);
 
     const or: Prisma.UserWhereInput[] = [];
     if (email) or.push({ email });
