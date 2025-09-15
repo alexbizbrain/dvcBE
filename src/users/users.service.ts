@@ -12,6 +12,7 @@ import { TooManyRequestsException } from '@aws-sdk/client-sesv2';
 import { randomInt } from 'crypto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
+import { SmsService } from '../services/sms.service';
 
 @Injectable()
 export class UsersService {
@@ -21,6 +22,7 @@ export class UsersService {
   constructor(
     private prismaService: PrismaService,
     private emailService: EmailService,
+    private smsService: SmsService
   ) {}
 
   private toSafeUser(user: User): SafeUser {
@@ -160,9 +162,20 @@ export class UsersService {
           process.env.NODE_ENV === 'development' ? otpCode : undefined,
       };
     }
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`OTP for ${phoneNumber}: ${otpCode}`);
+    
+    // Send OTP via SMS if phone number is provided
+    if (phoneNumber) {
+      const smsSent = await this.smsService.sendOtpSms(phoneNumber, otpCode);
+      if (!smsSent) {
+        throw new Error('Failed to send OTP SMS');
+      }
+      
+      return {
+        success: true,
+        message: `OTP sent to ${phoneNumber}`,
+        // Remove this in production:
+        developmentOtp: process.env.NODE_ENV === 'development' ? otpCode : undefined
+      };
     }
     return {
       success: true,
