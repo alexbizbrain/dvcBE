@@ -263,6 +263,12 @@ export class UsersService {
     };
   }
 
+  async getSafeUserById(id: string) {
+    const user = await this.prismaService.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    return this.toSafeUser(user);
+  }
+
   private generateOtp(): string {
     // cryptographically stronger 6-digit OTP
     return String(randomInt(0, 1_000_000)).padStart(6, '0');

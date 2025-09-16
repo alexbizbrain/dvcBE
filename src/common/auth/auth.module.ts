@@ -5,6 +5,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { PassportModule } from '@nestjs/passport';
 import { AdminAuthService } from './admin-auth.service';
 import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
+import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaService } from 'src/prisma.service';
 
 @Global()
@@ -12,6 +13,7 @@ import { PrismaService } from 'src/prisma.service';
   imports: [PassportModule.register({ defaultStrategy: 'jwt' })],
   providers: [
     JwtAuthGuard,
+    JwtStrategy,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
