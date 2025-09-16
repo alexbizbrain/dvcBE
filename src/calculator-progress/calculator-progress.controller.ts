@@ -49,7 +49,9 @@ export class CalculatorProgressController {
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
   async clearProgress(@Request() req) {
-    const userId = req.user.id;
+    // const userId = req.user.id;
+    const userId = "cmfmde41q0001fmhy5musgl57"; // Temporary hardcoded user ID for testing
+
     await this.calculatorProgressService.clearProgress(userId);
     
     return {
@@ -60,7 +62,8 @@ export class CalculatorProgressController {
 
   @Post('submit')
   async submitCalculator(@Request() req) {
-    const userId = req.user.id;
+    // const userId = req.user.id;
+    const userId = "cmfmde41q0001fmhy5musgl57"; // Temporary hardcoded user ID for testing
     await this.calculatorProgressService.submitCalculator(userId);
     
     return {

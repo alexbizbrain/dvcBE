@@ -9,7 +9,7 @@ export class SaveProgressDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(4)
+  @Max(5)
   currentStep?: number;
 
   @IsOptional()
