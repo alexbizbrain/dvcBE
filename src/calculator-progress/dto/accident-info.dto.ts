@@ -6,12 +6,10 @@ export class AccidentInfoDto {
   accidentDate?: string;
 
   @IsOptional()
-  @IsIn(['yes', 'no'])
-  isAtFault?: string;
+  isAtFault?: boolean;
 
   @IsOptional()
-  @IsIn(['yes', 'no'])
-  isRepaired?: string;
+  isRepaired?: boolean;
 
   @IsOptional()
   @IsString()
