@@ -1,10 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 import { AppConfigModule } from './config/config.module';
-import { LoggerModule } from './logging/logger.module';
+import { PinoLoggerModule } from './logging/pino-logger.module';
 
 @Global()
 @Module({
-  imports: [AppConfigModule, LoggerModule],
-  exports: [AppConfigModule, LoggerModule],
+  imports: [AppConfigModule, PinoLoggerModule],
+  exports: [AppConfigModule, PinoLoggerModule],
 })
 export class CommonModule {}

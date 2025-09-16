@@ -1,9 +1,10 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/http/filters/http-exception.filter';
 import { TransformInterceptor } from './common/http/interceptors/transform.interceptor';
 import { TimeoutInterceptor } from './common/http/interceptors/timeout.interceptor';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -13,6 +14,8 @@ async function bootstrap() {
     writable: process.stdout.writable,
     fd: process.stdout.fd,
   });
+
+  app.useLogger(app.get(Logger));
 
   // Enable global validation
   app.useGlobalPipes(
@@ -24,7 +27,7 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalInterceptors(
-    new TransformInterceptor(),
+    new TransformInterceptor(app.get(Reflector)),
     new TimeoutInterceptor(),
   );
 
