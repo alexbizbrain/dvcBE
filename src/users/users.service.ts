@@ -25,7 +25,7 @@ export class UsersService {
   constructor(
     private prismaService: PrismaService,
     private emailService: EmailService,
-    private smsService: SmsService
+    private smsService: SmsService,
   ) {}
 
   private toSafeUser(user: User): SafeUser {
@@ -213,20 +213,28 @@ export class UsersService {
       if (!ok) throw new BadRequestException('Failed to send OTP email');
       return { ...responseBase, message: `OTP sent to ${email}` };
     }
-    
+
     // Send OTP via SMS if phone number is provided
     if (phoneNumber) {
-      const smsSent = await this.smsService.sendOtpSms(phoneNumber, otpCode);
+      const smsSent = await this.smsService.sendOtpSms(
+        phoneNumber,
+        result.otpCode,
+      );
       if (!smsSent) {
         throw new Error('Failed to send OTP SMS');
       }
-      
+
       return {
         success: true,
         message: `OTP sent to ${phoneNumber}`,
         // Remove this in production:
-        developmentOtp: process.env.NODE_ENV === 'development' ? otpCode : undefined
+        developmentOtp:
+          process.env.NODE_ENV === 'development' ? result.otpCode : undefined,
       };
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`OTP for ${phoneNumber}: ${result.otpCode}`);
     }
     return { ...responseBase, message: `OTP sent to ${phoneNumber}` };
   }
