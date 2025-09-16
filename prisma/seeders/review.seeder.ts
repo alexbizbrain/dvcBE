@@ -1,7 +1,5 @@
-// scripts/seed-reviews.ts (Sample data seeder)
+import { Seeder } from './seeder.interface';
 import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 
 const sampleReviews = [
   {
@@ -66,30 +64,25 @@ const sampleReviews = [
   },
 ];
 
-async function seedReviews() {
-  console.log('Seeding reviews...');
+export class ReviewSeeder implements Seeder {
+  async run(prisma: PrismaClient): Promise<void> {
+    console.log('Seeding reviews...');
 
-  for (const review of sampleReviews) {
-    await prisma.review.create({
-      data: review,
-    });
+    for (const review of sampleReviews) {
+      const existing = await prisma.review.findFirst({
+        where: { customerName: review.customerName, source: review.source },
+      });
+
+      if (existing) {
+        await prisma.review.update({
+          where: { id: existing.id },
+          data: review,
+        });
+      } else {
+        await prisma.review.create({ data: review });
+      }
+    }
+
+    console.log('✅ Reviews seeded successfully!');
   }
-
-  console.log('Reviews seeded successfully!');
 }
-
-async function main() {
-  try {
-    await seedReviews();
-  } catch (error) {
-    console.error('Error seeding reviews:', error);
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-if (require.main === module) {
-  main();
-}
-
-export { seedReviews };
