@@ -121,6 +121,8 @@ model CalculatorProgress {
   isRepaired             Boolean?
   repairCost             String?
   approximateCarPrice    String?
+  repairInvoiceFileName    String?
+  repairInvoiceFileUrl     String?
   nextAction             String?   @default("file-claim")
   
   // Step 3: Insurance Information

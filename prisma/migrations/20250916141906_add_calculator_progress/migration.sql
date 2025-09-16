@@ -15,6 +15,8 @@ CREATE TABLE "public"."calculator_progress" (
     "isRepaired" BOOLEAN,
     "repairCost" TEXT,
     "approximateCarPrice" TEXT,
+    "repairInvoiceFileName" TEXT,
+    "repairInvoiceFileUrl" TEXT,
     "nextAction" TEXT DEFAULT 'file-claim',
     "yourInsurance" TEXT,
     "claimNumber" TEXT,
