@@ -51,7 +51,6 @@ export class UsersController {
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
   async verifyOtp(@Body() dto: VerifyOtpDto) {
-    console.log(dto);
     const result = await this.usersService.verifyOtp(dto);
     const token = await this.authService.issueAccessTokenForUserId(
       result.user.id,
@@ -65,7 +64,7 @@ export class UsersController {
   }
 
   @Get('me')
-  me(@CurrentUser() user: User) {
-    return user.id;
+  async me(@CurrentUser() user: User) {
+    return this.usersService.getSafeUserById(user.id);
   }
 }
