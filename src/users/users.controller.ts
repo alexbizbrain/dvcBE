@@ -64,7 +64,7 @@ export class UsersController {
   }
 
   @Get('me')
-  me(@CurrentUser() user: User) {
-    return user.id;
+  async me(@CurrentUser() user: User) {
+    return this.usersService.getSafeUserById(user.id);
   }
 }
