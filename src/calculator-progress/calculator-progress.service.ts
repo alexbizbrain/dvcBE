@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SaveProgressDto } from './dto/save-progress.dto';
 import { CalculatorProgressResponseDto } from './dto/calculator-progress-response.dto';
@@ -8,114 +8,126 @@ export class CalculatorProgressService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getProgress(userId: string): Promise<CalculatorProgressResponseDto | null> {
-    const progress = await this.prisma.calculatorProgress.findUnique({
-      where: { userId },
+    // Get the draft claim for the user
+    const claim = await this.prisma.claim.findFirst({
+      where: { 
+        userId,
+        status: 'draft'
+      },
     });
 
-    if (!progress) {
+    if (!claim) {
       return null;
     }
 
-    return this.mapToResponseDto(progress);
+    return this.mapToResponseDto(claim);
   }
 
   async saveProgress(
     userId: string,
     data: SaveProgressDto,
   ): Promise<CalculatorProgressResponseDto> {
-    // Update lastAccessedAt on every save
+    // Check if user already has a draft claim
+    const existingDraft = await this.prisma.claim.findFirst({
+      where: { 
+        userId,
+        status: 'draft'
+      },
+    });
+
+    // Prepare update data
     const updateData: any = {
       lastAccessedAt: new Date(),
     };
 
-    // Add step tracking
+    // Update step tracking
     if (data.currentStep !== undefined) {
       updateData.currentStep = data.currentStep;
     }
 
-    if (data.isSubmitted !== undefined) {
-      updateData.isSubmitted = data.isSubmitted;
-    }
-
-    // Vehicle Info fields
+    // Handle JSON field updates
     if (data.vehicleInfo) {
-      if (data.vehicleInfo.year !== undefined) updateData.vehicleYear = data.vehicleInfo.year;
-      if (data.vehicleInfo.make !== undefined) updateData.vehicleMake = data.vehicleInfo.make;
-      if (data.vehicleInfo.model !== undefined) updateData.vehicleModel = data.vehicleInfo.model;
-      if (data.vehicleInfo.vin !== undefined) updateData.vehicleVin = data.vehicleInfo.vin;
-      if (data.vehicleInfo.mileage !== undefined) updateData.vehicleMileage = data.vehicleInfo.mileage;
+      updateData.vehicleInfo = this.mergeJsonField(
+        existingDraft?.vehicleInfo as any,
+        data.vehicleInfo
+      );
     }
 
-    // Accident Info fields
     if (data.accidentInfo) {
-      if (data.accidentInfo.accidentDate !== undefined) updateData.accidentDate = data.accidentInfo.accidentDate;
-      if (data.accidentInfo.isAtFault !== undefined) updateData.isAtFault = data.accidentInfo.isAtFault;
-      if (data.accidentInfo.isRepaired !== undefined) updateData.isRepaired = data.accidentInfo.isRepaired;
-      if (data.accidentInfo.repairCost !== undefined) updateData.repairCost = data.accidentInfo.repairCost;
-      if (data.accidentInfo.approximateCarPrice !== undefined) updateData.approximateCarPrice = data.accidentInfo.approximateCarPrice;
-      if (data.accidentInfo.nextAction !== undefined) updateData.nextAction = data.accidentInfo.nextAction;
+      updateData.accidentInfo = this.mergeJsonField(
+        existingDraft?.accidentInfo as any,
+        data.accidentInfo
+      );
     }
 
-    // Insurance Info fields
     if (data.insuranceInfo) {
-      if (data.insuranceInfo.yourInsurance !== undefined) updateData.yourInsurance = data.insuranceInfo.yourInsurance;
-      if (data.insuranceInfo.claimNumber !== undefined) updateData.claimNumber = data.insuranceInfo.claimNumber;
-      if (data.insuranceInfo.atFaultInsurance !== undefined) updateData.atFaultInsurance = data.insuranceInfo.atFaultInsurance;
-      if (data.insuranceInfo.adjusterName !== undefined) updateData.adjusterName = data.insuranceInfo.adjusterName;
-      if (data.insuranceInfo.adjusterEmail !== undefined) updateData.adjusterEmail = data.insuranceInfo.adjusterEmail;
-      if (data.insuranceInfo.adjusterPhone !== undefined) updateData.adjusterPhone = data.insuranceInfo.adjusterPhone;
-      if (data.insuranceInfo.adjusterCountryCode !== undefined) updateData.adjusterCountryCode = data.insuranceInfo.adjusterCountryCode;
-      if (data.insuranceInfo.driverName !== undefined) updateData.driverName = data.insuranceInfo.driverName;
-      if (data.insuranceInfo.driverEmail !== undefined) updateData.driverEmail = data.insuranceInfo.driverEmail;
-      if (data.insuranceInfo.driverPhone !== undefined) updateData.driverPhone = data.insuranceInfo.driverPhone;
-      if (data.insuranceInfo.driverCountryCode !== undefined) updateData.driverCountryCode = data.insuranceInfo.driverCountryCode;
+      updateData.insuranceInfo = this.mergeJsonField(
+        existingDraft?.insuranceInfo as any,
+        data.insuranceInfo
+      );
     }
 
-    // Pricing Plan fields
     if (data.pricingPlan) {
-      if (data.pricingPlan.selectedPlan !== undefined) updateData.selectedPlan = data.pricingPlan.selectedPlan;
-      if (data.pricingPlan.agreedToTerms !== undefined) updateData.agreedToTerms = data.pricingPlan.agreedToTerms;
-      if (data.pricingPlan.signatureDataUrl !== undefined) updateData.signatureDataUrl = data.pricingPlan.signatureDataUrl;
+      updateData.pricingPlan = this.mergeJsonField(
+        existingDraft?.pricingPlan as any,
+        data.pricingPlan
+      );
     }
 
-    const progress = await this.prisma.calculatorProgress.upsert({
-      where: { userId },
-      update: updateData,
-      create: {
-        userId,
-        ...updateData,
-      },
-    });
+    let claim;
+    
+    if (existingDraft) {
+      // Update existing draft claim
+      claim = await this.prisma.claim.update({
+        where: { id: existingDraft.id },
+        data: updateData,
+      });
+    } else {
+      // Create new draft claim
+      claim = await this.prisma.claim.create({
+        data: {
+          userId,
+          status: 'draft',
+          ...updateData,
+        },
+      });
+    }
 
-    return this.mapToResponseDto(progress);
+    return this.mapToResponseDto(claim);
   }
 
   async clearProgress(userId: string): Promise<void> {
     try {
-      await this.prisma.calculatorProgress.delete({
-        where: { userId },
+      // Delete the draft claim
+      await this.prisma.claim.deleteMany({
+        where: { 
+          userId,
+          status: 'draft'
+        },
       });
     } catch (error) {
-      // If record doesn't exist, that's fine - nothing to clear
-      if (error.code !== 'P2025') {
-        throw error;
-      }
+      // If no draft claim exists, that's fine - nothing to clear
+      console.log('No draft claim to clear for user:', userId);
     }
   }
 
   async submitCalculator(userId: string): Promise<void> {
-    const progress = await this.prisma.calculatorProgress.findUnique({
-      where: { userId },
+    const draftClaim = await this.prisma.claim.findFirst({
+      where: { 
+        userId,
+        status: 'draft'
+      },
     });
 
-    if (!progress) {
-      throw new NotFoundException('No calculator progress found for user');
+    if (!draftClaim) {
+      throw new NotFoundException('No draft claim found for user');
     }
 
-    await this.prisma.calculatorProgress.update({
-      where: { userId },
+    // Update the draft claim to completed
+    await this.prisma.claim.update({
+      where: { id: draftClaim.id },
       data: {
-        isSubmitted: true,
+        status: 'completed',
         currentStep: 4, // Mark as completed
         lastAccessedAt: new Date(),
       },
@@ -123,68 +135,111 @@ export class CalculatorProgressService {
   }
 
   async getProgressStats(): Promise<any> {
-    // For admin analytics - get completion rates by step
-    const stats = await this.prisma.calculatorProgress.groupBy({
+    // Get stats for all claims
+    const stepStats = await this.prisma.claim.groupBy({
       by: ['currentStep'],
       _count: {
         id: true,
       },
     });
 
-    const totalUsers = await this.prisma.calculatorProgress.count();
-    const submittedCount = await this.prisma.calculatorProgress.count({
-      where: { isSubmitted: true },
+    const totalClaims = await this.prisma.claim.count();
+    const completedClaims = await this.prisma.claim.count({
+      where: { status: 'completed' },
+    });
+    const draftClaims = await this.prisma.claim.count({
+      where: { status: 'draft' },
+    });
+
+    // Get unique users who started the calculator
+    const uniqueUsers = await this.prisma.claim.groupBy({
+      by: ['userId'],
+      _count: {
+        userId: true,
+      },
     });
 
     return {
-      totalStarted: totalUsers,
-      totalSubmitted: submittedCount,
-      completionRate: totalUsers > 0 ? (submittedCount / totalUsers) * 100 : 0,
-      stepDistribution: stats,
+      totalClaims,
+      totalUniqueUsers: uniqueUsers.length,
+      draftClaims,
+      completedClaims,
+      completionRate: totalClaims > 0 ? (completedClaims / totalClaims) * 100 : 0,
+      stepDistribution: stepStats,
     };
   }
 
-  private mapToResponseDto(progress: any): CalculatorProgressResponseDto {
+  // Helper method to get all user claims (useful for admin or user history)
+  async getUserClaims(userId: string): Promise<CalculatorProgressResponseDto[]> {
+    const claims = await this.prisma.claim.findMany({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return claims.map(claim => this.mapToResponseDto(claim));
+  }
+
+  private mergeJsonField(existingData: any, newData: any): any {
+    if (!existingData) {
+      return newData;
+    }
+    
+    // Merge existing data with new data
     return {
-      id: progress.id,
-      currentStep: progress.currentStep,
-      isSubmitted: progress.isSubmitted,
-      lastAccessedAt: progress.lastAccessedAt,
+      ...existingData,
+      ...newData,
+    };
+  }
+
+  private mapToResponseDto(claim: any): CalculatorProgressResponseDto {
+    // Extract JSON data with fallback to empty objects
+    const vehicleInfo = claim.vehicleInfo || {};
+    const accidentInfo = claim.accidentInfo || {};
+    const insuranceInfo = claim.insuranceInfo || {};
+    const pricingPlan = claim.pricingPlan || {};
+
+    return {
+      id: claim.id,
+      currentStep: claim.currentStep,
+      isSubmitted: claim.status === 'completed',
+      lastAccessedAt: claim.lastAccessedAt,
       vehicleInfo: {
-        year: progress.vehicleYear,
-        make: progress.vehicleMake,
-        model: progress.vehicleModel,
-        vin: progress.vehicleVin,
-        mileage: progress.vehicleMileage,
+        year: vehicleInfo.year || vehicleInfo.vehicleYear,
+        make: vehicleInfo.make || vehicleInfo.vehicleMake,
+        model: vehicleInfo.model || vehicleInfo.vehicleModel,
+        vin: vehicleInfo.vin || vehicleInfo.vehicleVin,
+        mileage: vehicleInfo.mileage || vehicleInfo.vehicleMileage,
       },
       accidentInfo: {
-        accidentDate: progress.accidentDate,
-        isAtFault: progress.isAtFault,
-        isRepaired: progress.isRepaired,
-        repairCost: progress.repairCost,
-        approximateCarPrice: progress.approximateCarPrice,
-        nextAction: progress.nextAction,
+        accidentDate: accidentInfo.accidentDate,
+        isAtFault: accidentInfo.isAtFault,
+        isRepaired: accidentInfo.isRepaired,
+        repairCost: accidentInfo.repairCost,
+        approximateCarPrice: accidentInfo.approximateCarPrice,
+        repairInvoiceFileName: accidentInfo.repairInvoiceFileName,
+        repairInvoiceFileUrl: accidentInfo.repairInvoiceFileUrl,
+        nextAction: accidentInfo.nextAction,
       },
       insuranceInfo: {
-        yourInsurance: progress.yourInsurance,
-        claimNumber: progress.claimNumber,
-        atFaultInsurance: progress.atFaultInsurance,
-        adjusterName: progress.adjusterName,
-        adjusterEmail: progress.adjusterEmail,
-        adjusterPhone: progress.adjusterPhone,
-        adjusterCountryCode: progress.adjusterCountryCode,
-        driverName: progress.driverName,
-        driverEmail: progress.driverEmail,
-        driverPhone: progress.driverPhone,
-        driverCountryCode: progress.driverCountryCode,
+        yourInsurance: insuranceInfo.yourInsurance,
+        claimNumber: insuranceInfo.claimNumber,
+        atFaultInsurance: insuranceInfo.atFaultInsurance,
+        adjusterName: insuranceInfo.adjusterName,
+        adjusterEmail: insuranceInfo.adjusterEmail,
+        adjusterPhone: insuranceInfo.adjusterPhone,
+        adjusterCountryCode: insuranceInfo.adjusterCountryCode,
+        driverName: insuranceInfo.driverName,
+        driverEmail: insuranceInfo.driverEmail,
+        driverPhone: insuranceInfo.driverPhone,
+        driverCountryCode: insuranceInfo.driverCountryCode,
       },
       pricingPlan: {
-        selectedPlan: progress.selectedPlan,
-        agreedToTerms: progress.agreedToTerms,
-        signatureDataUrl: progress.signatureDataUrl,
+        selectedPlan: pricingPlan.selectedPlan,
+        agreedToTerms: pricingPlan.agreedToTerms,
+        signatureDataUrl: pricingPlan.signatureDataUrl,
       },
-      createdAt: progress.createdAt,
-      updatedAt: progress.updatedAt,
+      createdAt: claim.createdAt,
+      updatedAt: claim.updatedAt,
     };
   }
 }

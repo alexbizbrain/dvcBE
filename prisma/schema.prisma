@@ -37,7 +37,7 @@ model User {
   otps            Otp[]
   role            Role      @relation(fields: [roleId], references: [id])
   liabilityClaims LiabilityClaim[]
-  calculatorProgress CalculatorProgress?
+  claims          Claim[]
 
   @@map("users")
 }
@@ -101,49 +101,20 @@ model Review {
   @@map("reviews")
 }
 
-model CalculatorProgress {
+model Claim {
   id          String   @id @default(cuid())
-  userId      String   @unique
+  userId      String   
   
   // Progress tracking
   currentStep     Int      @default(1)
-  isSubmitted     Boolean  @default(false)
+  status          String   @default("draft") // "draft" or "completed"
   lastAccessedAt  DateTime @default(now())
   
-  // Step 1: Vehicle Information
-  vehicleYear      String?
-  vehicleMake      String?
-  vehicleModel     String?
-  vehicleVin       String?
-  vehicleMileage   String?
-  
-  // Step 2: Accident Information
-  accidentDate            String?
-  isAtFault              Boolean?
-  isRepaired             Boolean?
-  repairCost             String?
-  approximateCarPrice    String?
-  repairInvoiceFileName    String?
-  repairInvoiceFileUrl     String?
-  nextAction             String?   @default("file-claim")
-  
-  // Step 3: Insurance Information
-  yourInsurance         String?
-  claimNumber          String?
-  atFaultInsurance     String?
-  adjusterName         String?
-  adjusterEmail        String?
-  adjusterPhone        String?
-  adjusterCountryCode  String?   @default("+1")
-  driverName           String?
-  driverEmail          String?
-  driverPhone          String?
-  driverCountryCode    String?   @default("+1")
-  
-  // Step 4: Pricing Plan
-  selectedPlan      String?      @default("contingency")
-  agreedToTerms     Boolean      @default(false)
-  signatureDataUrl  String?      // Base64 signature data
+  // JSON fields for each step
+  vehicleInfo     Json?    // Step 1: Vehicle Information
+  accidentInfo    Json?    // Step 2: Accident Information  
+  insuranceInfo   Json?    // Step 3: Insurance Information
+  pricingPlan     Json?    // Step 4: Pricing Plan
   
   // Metadata
   createdAt    DateTime @default(now())
@@ -152,5 +123,5 @@ model CalculatorProgress {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  @@map("calculator_progress")
+  @@map("claims")
 }
