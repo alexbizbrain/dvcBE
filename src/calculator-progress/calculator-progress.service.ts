@@ -1,15 +1,11 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SaveProgressDto } from './dto/save-progress.dto';
 import { CalculatorProgressResponseDto } from './dto/calculator-progress-response.dto';
 
 @Injectable()
 export class CalculatorProgressService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getProgress(
     userId: string,
