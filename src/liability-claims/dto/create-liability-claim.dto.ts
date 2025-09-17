@@ -25,15 +25,15 @@ export class CreateLiabilityClaimDto {
   )
   countryCode?: string; // defaults to 'us' in service if omitted
 
-  @IsString()
-  atFaultDriver!: string;
+  @IsBoolean()
+  atFaultDriver!: boolean;
 
   @IsString()
   @MaxLength(64)
   state!: string;
 
-  @IsString()
-  hitAndRun!: string;
+  @IsBoolean()
+  hitAndRun!: boolean;
 
   @IsOptional()
   @IsBoolean()

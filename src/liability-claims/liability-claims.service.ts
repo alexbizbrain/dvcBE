@@ -48,13 +48,13 @@ export class LiabilityClaimsService {
   }
 
   private computeEligibility(
-    atFaultDriver: string,
-    hitAndRun: string,
+    atFaultDriver: boolean,
+    hitAndRun: boolean,
     state: string,
   ) {
     const reasons: string[] = [];
-    if (atFaultDriver !== 'no') reasons.push('atFaultDriver must be no');
-    if (hitAndRun !== 'no') reasons.push('hitAndRun must be no');
+    if (atFaultDriver) reasons.push('atFaultDriver must be no');
+    if (hitAndRun) reasons.push('hitAndRun must be no');
     if (this.isNotAllowedState(state))
       reasons.push('state must be rather then New York or North Carolina');
     return { eligible: reasons.length === 0, reasons };
@@ -64,8 +64,8 @@ export class LiabilityClaimsService {
     try {
       const countryCode = (dto.countryCode ?? 'us').toLowerCase();
       const eligibility = this.computeEligibility(
-        dto.atFaultDriver.toString(),
-        dto.hitAndRun.toString(),
+        dto.atFaultDriver,
+        dto.hitAndRun,
         dto.state,
       );
       const [ensuredUser, claim] = await this.prisma.$transaction(
@@ -80,9 +80,9 @@ export class LiabilityClaimsService {
             data: {
               email: dto.email ?? null,
               countryCode,
-              atFaultDriver: dto.atFaultDriver === 'no',
+              atFaultDriver: dto.atFaultDriver,
               state: dto.state,
-              hitAndRun: dto.hitAndRun === 'no',
+              hitAndRun: dto.hitAndRun,
               agreeToEmails: dto.agreeToEmails ?? false,
               agreeToSms: dto.agreeToSms ?? false,
               user: { connect: { id: ensuredUser.id! } },
