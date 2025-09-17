@@ -47,21 +47,21 @@ export class UserDashboardService {
   ) {}
 
   async getSummary(userId: string) {
-    const [activeClaims, totalClaims /* amount */] = await Promise.all([
-      this.prismaService.liabilityClaim.count({
-        where: { userId /* status: 'IN_PROGRESS' */ /* isClosed: false */ },
-      }),
-      this.prismaService.liabilityClaim.count({ where: { userId } }),
-      // Adjust field name when confirmed (e.g., payoutAmount, settlementAmount, totalClaim):
-      // this.prismaService.liabilityClaim.aggregate({
-      //   where: { userId /* ensure only finalized amounts if needed */ },
-      //   _sum: { payoutAmount: true as any } as any,
-      // }),
-    ]);
+    // const [activeClaims, totalClaims /* amount */] = await Promise.all([
+    // this.prismaService.liabilityClaim.count({
+    // where: { userId /* status: 'IN_PROGRESS' */ /* isClosed: false */ },
+    // }),
+    // this.prismaService.liabilityClaim.count({ where: { userId } }),
+    // Adjust field name when confirmed (e.g., payoutAmount, settlementAmount, totalClaim):
+    // this.prismaService.liabilityClaim.aggregate({
+    //   where: { userId /* ensure only finalized amounts if needed */ },
+    //   _sum: { payoutAmount: true as any } as any,
+    // }),
+    // ]);
 
     // const totalClaimAmount = (amount as any)?._sum?.payoutAmount ?? 0;
 
-    return { activeClaims, totalClaims /* totalClaimAmount */ };
+    return { activeClaims: 10, totalClaims: 20, totalClaimAmount: 500 };
   }
 
   async getActiveClaim(userId: string) {
