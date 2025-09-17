@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SaveProgressDto } from './dto/save-progress.dto';
 import { CalculatorProgressResponseDto } from './dto/calculator-progress-response.dto';
@@ -7,12 +11,14 @@ import { CalculatorProgressResponseDto } from './dto/calculator-progress-respons
 export class CalculatorProgressService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getProgress(userId: string): Promise<CalculatorProgressResponseDto | null> {
+  async getProgress(
+    userId: string,
+  ): Promise<CalculatorProgressResponseDto | null> {
     // Get the draft claim for the user
     const claim = await this.prisma.claim.findFirst({
-      where: { 
+      where: {
         userId,
-        status: 'draft'
+        status: 'draft',
       },
     });
 
@@ -29,9 +35,9 @@ export class CalculatorProgressService {
   ): Promise<CalculatorProgressResponseDto> {
     // Check if user already has a draft claim
     const existingDraft = await this.prisma.claim.findFirst({
-      where: { 
+      where: {
         userId,
-        status: 'draft'
+        status: 'draft',
       },
     });
 
@@ -49,33 +55,32 @@ export class CalculatorProgressService {
     if (data.vehicleInfo) {
       updateData.vehicleInfo = this.mergeJsonField(
         existingDraft?.vehicleInfo as any,
-        data.vehicleInfo
+        data.vehicleInfo,
       );
     }
 
     if (data.accidentInfo) {
       updateData.accidentInfo = this.mergeJsonField(
         existingDraft?.accidentInfo as any,
-        data.accidentInfo
+        data.accidentInfo,
       );
     }
 
     if (data.insuranceInfo) {
       updateData.insuranceInfo = this.mergeJsonField(
         existingDraft?.insuranceInfo as any,
-        data.insuranceInfo
+        data.insuranceInfo,
       );
     }
 
     if (data.pricingPlan) {
       updateData.pricingPlan = this.mergeJsonField(
         existingDraft?.pricingPlan as any,
-        data.pricingPlan
+        data.pricingPlan,
       );
     }
 
     let claim;
-    
     if (existingDraft) {
       // Update existing draft claim
       claim = await this.prisma.claim.update({
@@ -100,9 +105,9 @@ export class CalculatorProgressService {
     try {
       // Delete the draft claim
       await this.prisma.claim.deleteMany({
-        where: { 
+        where: {
           userId,
-          status: 'draft'
+          status: 'draft',
         },
       });
     } catch (error) {
@@ -113,9 +118,9 @@ export class CalculatorProgressService {
 
   async submitCalculator(userId: string): Promise<void> {
     const draftClaim = await this.prisma.claim.findFirst({
-      where: { 
+      where: {
         userId,
-        status: 'draft'
+        status: 'draft',
       },
     });
 
@@ -164,26 +169,29 @@ export class CalculatorProgressService {
       totalUniqueUsers: uniqueUsers.length,
       draftClaims,
       completedClaims,
-      completionRate: totalClaims > 0 ? (completedClaims / totalClaims) * 100 : 0,
+      completionRate:
+        totalClaims > 0 ? (completedClaims / totalClaims) * 100 : 0,
       stepDistribution: stepStats,
     };
   }
 
   // Helper method to get all user claims (useful for admin or user history)
-  async getUserClaims(userId: string): Promise<CalculatorProgressResponseDto[]> {
+  async getUserClaims(
+    userId: string,
+  ): Promise<CalculatorProgressResponseDto[]> {
     const claims = await this.prisma.claim.findMany({
       where: { userId },
       orderBy: { updatedAt: 'desc' },
     });
 
-    return claims.map(claim => this.mapToResponseDto(claim));
+    return claims.map((claim) => this.mapToResponseDto(claim));
   }
 
   private mergeJsonField(existingData: any, newData: any): any {
     if (!existingData) {
       return newData;
     }
-    
+
     // Merge existing data with new data
     return {
       ...existingData,

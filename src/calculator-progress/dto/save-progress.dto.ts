@@ -1,4 +1,11 @@
-import { IsOptional, IsInt, Min, Max, IsBoolean, ValidateNested } from 'class-validator';
+import {
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  IsBoolean,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { VehicleInfoDto } from './vehicle-info.dto';
 import { AccidentInfoDto } from './accident-info.dto';

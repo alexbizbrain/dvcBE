@@ -18,7 +18,7 @@ import { CurrentUser } from 'src/common/auth/decorators/current-user.decorator';
 export class CalculatorProgressController {
   constructor(
     private readonly calculatorProgressService: CalculatorProgressService,
-  ) { }
+  ) {}
 
   @Get()
   async getProgress(@CurrentUser() user: { id: string }) {
@@ -32,7 +32,10 @@ export class CalculatorProgressController {
   }
 
   @Post()
-  async saveProgress(@CurrentUser() user: { id: string }, @Body() saveProgressDto: SaveProgressDto) {
+  async saveProgress(
+    @CurrentUser() user: { id: string },
+    @Body() saveProgressDto: SaveProgressDto,
+  ) {
     const userId = user.id;
 
     const progress = await this.calculatorProgressService.saveProgress(
@@ -71,4 +74,3 @@ export class CalculatorProgressController {
     };
   }
 }
-

@@ -25,8 +25,8 @@ export class UsersService {
   constructor(
     private prismaService: PrismaService,
     private emailService: EmailService,
-    private smsService: SmsService
-  ) { }
+    private smsService: SmsService,
+  ) {}
 
   private toSafeUser(user: User): SafeUser {
     return {
@@ -109,7 +109,7 @@ export class UsersService {
     const windowMs = this.OTP_WINDOW_MIN * 60 * 1000;
     const windowStart = new Date(now.getTime() - windowMs);
     // --- create new OTP ---
-        const otpCode = this.generateOtp();
+    const otpCode = this.generateOtp();
     // Do all checks and creation inside a serializable transaction
     const result = await this.prismaService.$transaction(
       async (tx) => {
@@ -173,7 +173,6 @@ export class UsersService {
           data: { isUsed: true },
         });
 
-        
         const expiresAt = new Date(
           now.getTime() + this.OTP_TTL_MIN * 60 * 1000,
         );
@@ -223,7 +222,7 @@ export class UsersService {
       if (!smsSent) {
         throw new Error('Failed to send OTP SMS');
       }
-      
+
       return {
         success: true,
         message: `OTP sent to ${phoneNumber}`,
@@ -244,7 +243,8 @@ export class UsersService {
         success: true,
         message: `OTP sent to ${phoneNumber}`,
         // Remove this in production:
-        developmentOtp: process.env.NODE_ENV === 'development' ? otpCode : undefined
+        developmentOtp:
+          process.env.NODE_ENV === 'development' ? otpCode : undefined,
       };
     }
     return { ...responseBase, message: `OTP sent to ${phoneNumber}` };

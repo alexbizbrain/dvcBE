@@ -1,6 +1,10 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { UploadResult } from '../interfaces/upload-result.interface';
 import { S3Config } from '../interfaces/s3-config.interface';
 import { randomUUID } from 'crypto';
@@ -16,11 +20,19 @@ export class S3Service {
       region: this.configService.getOrThrow<string>('AWS_REGION', 'us-east-1'),
       bucketName: this.configService.getOrThrow<string>('AWS_S3_BUCKET_NAME'),
       accessKeyId: this.configService.getOrThrow<string>('AWS_ACCESS_KEY_ID'),
-      secretAccessKey: this.configService.getOrThrow<string>('AWS_SECRET_ACCESS_KEY'),
+      secretAccessKey: this.configService.getOrThrow<string>(
+        'AWS_SECRET_ACCESS_KEY',
+      ),
     };
 
-    if (!s3Config.bucketName || !s3Config.accessKeyId || !s3Config.secretAccessKey) {
-      throw new Error('AWS S3 configuration is missing. Please check your environment variables.');
+    if (
+      !s3Config.bucketName ||
+      !s3Config.accessKeyId ||
+      !s3Config.secretAccessKey
+    ) {
+      throw new Error(
+        'AWS S3 configuration is missing. Please check your environment variables.',
+      );
     }
 
     this.bucketName = s3Config.bucketName;
@@ -32,7 +44,10 @@ export class S3Service {
         accessKeyId: s3Config.accessKeyId,
         secretAccessKey: s3Config.secretAccessKey,
       },
-      ...(s3Config.endpoint && { endpoint: s3Config.endpoint, forcePathStyle: true }),
+      ...(s3Config.endpoint && {
+        endpoint: s3Config.endpoint,
+        forcePathStyle: true,
+      }),
     });
 
     this.logger.log(`S3Service initialized with bucket: ${this.bucketName}`);
@@ -49,10 +64,10 @@ export class S3Service {
 
       // Generate unique file name
       const fileExtension = this.getFileExtension(file.originalname);
-      const fileName = customFileName 
+      const fileName = customFileName
         ? `${customFileName}${fileExtension}`
         : `${randomUUID()}${fileExtension}`;
-      
+
       // Create S3 key with optional folder
       const key = folder ? `${folder}/${fileName}` : fileName;
 
@@ -65,7 +80,7 @@ export class S3Service {
         ContentLength: file.size,
         // Option 1: Public files (free but less secure)
         // ACL: 'public-read',
-        
+
         // Option 2: Private files with CloudFront (better security)
         // No ACL needed - files are private by default
       });
@@ -119,10 +134,10 @@ export class S3Service {
       'image/jpg',
       'image/jpeg',
     ];
-    
+
     if (!allowedTypes.includes(file.mimetype)) {
       throw new BadRequestException(
-        'Invalid file type. Only PDF, PNG, JPG, and JPEG files are allowed.'
+        'Invalid file type. Only PDF, PNG, JPG, and JPEG files are allowed.',
       );
     }
   }
@@ -140,7 +155,7 @@ export class S3Service {
     // if (useCloudFront  && cloudFrontDomain) {
     //   return `https://${cloudFrontDomain}/${key}`;
     // }
-    
+
     // Fallback to direct S3 URL
     const region = this.configService.get<string>('AWS_REGION', 'us-east-1');
     return `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;

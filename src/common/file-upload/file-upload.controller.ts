@@ -32,22 +32,22 @@ export class FileUploadController {
         const allowedTypes = [
           'application/pdf',
           'image/png',
-          'image/jpg', 
+          'image/jpg',
           'image/jpeg',
         ];
-        
+
         if (!allowedTypes.includes(file.mimetype)) {
           return callback(
             new BadRequestException(
-              'Invalid file type. Only PDF, PNG, JPG, and JPEG files are allowed.'
+              'Invalid file type. Only PDF, PNG, JPG, and JPEG files are allowed.',
             ),
-            false
+            false,
           );
         }
-        
+
         callback(null, true);
       },
-    })
+    }),
   )
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,

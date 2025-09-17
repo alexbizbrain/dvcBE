@@ -22,9 +22,9 @@ export class EmailService {
       credentials:
         accessKeyId && secretAccessKey
           ? {
-            accessKeyId,
-            secretAccessKey,
-          }
+              accessKeyId,
+              secretAccessKey,
+            }
           : undefined,
     });
   }
@@ -76,7 +76,7 @@ export class EmailService {
                 Data: emailTemplates.html,
                 Charset: 'UTF-8',
               },
-            }
+            },
           },
         },
       });
@@ -493,5 +493,4 @@ Unsubscribe: ${frontendUrl}/unsubscribe?email=${encodeURIComponent(data.customer
       text: textTemplate,
     };
   }
-
 }

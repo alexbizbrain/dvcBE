@@ -12,7 +12,11 @@ export class FileUploadService {
     folder?: string,
     customFileName?: string,
   ): Promise<FileUploadResponseDto> {
-    const result: UploadResult = await this.s3Service.uploadFile(file, folder, customFileName);
+    const result: UploadResult = await this.s3Service.uploadFile(
+      file,
+      folder,
+      customFileName,
+    );
 
     return {
       fileName: result.fileName,

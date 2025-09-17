@@ -1,7 +1,7 @@
-import { AccidentInfoDto } from "./accident-info.dto";
-import { InsuranceInfoDto } from "./insurance-info.dto";
-import { PricingPlanDto } from "./pricing-plan.dto";
-import { VehicleInfoDto } from "./vehicle-info.dto";
+import { AccidentInfoDto } from './accident-info.dto';
+import { InsuranceInfoDto } from './insurance-info.dto';
+import { PricingPlanDto } from './pricing-plan.dto';
+import { VehicleInfoDto } from './vehicle-info.dto';
 
 export class CalculatorProgressResponseDto {
   id: string;
