@@ -36,7 +36,7 @@ model User {
   isBusinessUser  Boolean   @default(false)
   otps            Otp[]
   role            Role      @relation(fields: [roleId], references: [id])
-
+  liabilityClaims LiabilityClaim[]
   calculatorProgress CalculatorProgress?
 
   @@map("users")
@@ -67,6 +67,8 @@ model LiabilityClaim {
   agreeToSms    Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("liability_claims")
 }

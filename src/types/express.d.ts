@@ -7,5 +7,9 @@ declare global {
       role: 'admin' | 'user';
       email?: string;
     }
+
+    interface Request {
+      rawToken?: string;
+    }
   }
 }

@@ -32,9 +32,8 @@ export class CreateLiabilityClaimDto {
   @MaxLength(64)
   state!: string;
 
-  @IsOptional()
-  @IsBoolean()
-  hitAndRun?: string;
+  @IsString()
+  hitAndRun!: string;
 
   @IsOptional()
   @IsBoolean()
