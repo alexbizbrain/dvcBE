@@ -47,9 +47,14 @@ export class LiabilityClaimsService {
     return { id: created.id, existed: false };
   }
 
-  private computeEligibility(atFaultDriver: string, state: string) {
+  private computeEligibility(
+    atFaultDriver: string,
+    hitAndRun: string,
+    state: string,
+  ) {
     const reasons: string[] = [];
     if (atFaultDriver !== 'no') reasons.push('atFaultDriver must be no');
+    if (hitAndRun !== 'no') reasons.push('hitAndRun must be no');
     if (this.isNotAllowedState(state))
       reasons.push('state must be rather then New York or North Carolina');
     return { eligible: reasons.length === 0, reasons };
@@ -60,25 +65,33 @@ export class LiabilityClaimsService {
       const countryCode = (dto.countryCode ?? 'us').toLowerCase();
       const eligibility = this.computeEligibility(
         dto.atFaultDriver.toString(),
+        dto.hitAndRun.toString(),
         dto.state,
       );
-      const ensuredUser = await this.ensureUser(
-        dto.email,
-        dto.phoneNumber,
-        countryCode,
-      );
+      const [ensuredUser, claim] = await this.prisma.$transaction(
+        async (prisma) => {
+          const ensuredUser = await this.ensureUser(
+            dto.email,
+            dto.phoneNumber,
+            countryCode,
+          );
 
-      const claim = await this.prisma.liabilityClaim.create({
-        data: {
-          email: dto.email ?? null,
-          countryCode,
-          atFaultDriver: dto.atFaultDriver === 'no',
-          state: dto.state,
-          hitAndRun: dto.hitAndRun === 'no',
-          agreeToEmails: dto.agreeToEmails ?? false,
-          agreeToSms: dto.agreeToSms ?? false,
+          const claim = await prisma.liabilityClaim.create({
+            data: {
+              email: dto.email ?? null,
+              countryCode,
+              atFaultDriver: dto.atFaultDriver === 'no',
+              state: dto.state,
+              hitAndRun: dto.hitAndRun === 'no',
+              agreeToEmails: dto.agreeToEmails ?? false,
+              agreeToSms: dto.agreeToSms ?? false,
+              user: { connect: { id: ensuredUser.id! } },
+            },
+          });
+
+          return [ensuredUser, claim];
         },
-      });
+      );
 
       return {
         claim,

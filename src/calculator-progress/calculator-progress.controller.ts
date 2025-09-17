@@ -18,14 +18,16 @@ import { Public } from 'src/common/auth/decorators/public.decorator';
 @Public()
 // @UseGuards(JwtAuthGuard)
 export class CalculatorProgressController {
-  constructor(private readonly calculatorProgressService: CalculatorProgressService) {}
+  constructor(
+    private readonly calculatorProgressService: CalculatorProgressService,
+  ) {}
 
   @Get()
   async getProgress(@Request() req) {
     // const userId = req.user.id; // Assuming JWT payload contains user id
-    const userId = "cmfmde41q0001fmhy5musgl57"; // Temporary hardcoded user ID for testing
+    const userId = 'cmfmde41q0001fmhy5musgl57'; // Temporary hardcoded user ID for testing
     const progress = await this.calculatorProgressService.getProgress(userId);
-    
+
     return {
       success: true,
       data: progress,
@@ -35,10 +37,13 @@ export class CalculatorProgressController {
   @Post()
   async saveProgress(@Request() req, @Body() saveProgressDto: SaveProgressDto) {
     // const userId = req.user.id;
-    const userId = "cmfmde41q0001fmhy5musgl57"; // Temporary hardcoded user ID for testing
+    const userId = 'cmfmde41q0001fmhy5musgl57'; // Temporary hardcoded user ID for testing
 
-    const progress = await this.calculatorProgressService.saveProgress(userId, saveProgressDto);
-    
+    const progress = await this.calculatorProgressService.saveProgress(
+      userId,
+      saveProgressDto,
+    );
+
     return {
       success: true,
       message: 'Progress saved successfully',
@@ -50,10 +55,10 @@ export class CalculatorProgressController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async clearProgress(@Request() req) {
     // const userId = req.user.id;
-    const userId = "cmfmde41q0001fmhy5musgl57"; // Temporary hardcoded user ID for testing
+    const userId = 'cmfmde41q0001fmhy5musgl57'; // Temporary hardcoded user ID for testing
 
     await this.calculatorProgressService.clearProgress(userId);
-    
+
     return {
       success: true,
       message: 'Progress cleared successfully',
@@ -63,9 +68,9 @@ export class CalculatorProgressController {
   @Post('submit')
   async submitCalculator(@Request() req) {
     // const userId = req.user.id;
-    const userId = "cmfmde41q0001fmhy5musgl57"; // Temporary hardcoded user ID for testing
+    const userId = 'cmfmde41q0001fmhy5musgl57'; // Temporary hardcoded user ID for testing
     await this.calculatorProgressService.submitCalculator(userId);
-    
+
     return {
       success: true,
       message: 'Calculator submitted successfully',
@@ -77,7 +82,7 @@ export class CalculatorProgressController {
   async getProgressStats(@Request() req) {
     // You might want to add admin role guard here
     const stats = await this.calculatorProgressService.getProgressStats();
-    
+
     return {
       success: true,
       data: stats,

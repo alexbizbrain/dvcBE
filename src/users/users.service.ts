@@ -290,6 +290,11 @@ export class UsersService {
     return this.toSafeUser(user);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
+  async logout(_id: string, _token: string) {
+    return true;
+  }
+
   private generateOtp(): string {
     // cryptographically stronger 6-digit OTP
     return String(randomInt(0, 1_000_000)).padStart(6, '0');

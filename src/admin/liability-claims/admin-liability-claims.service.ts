@@ -41,10 +41,12 @@ export class AdminLiabilityClaimsService {
           email: createDto.email,
           phoneNumber: createDto.phoneNumber,
           countryCode: createDto.countryCode || 'us',
-          atFaultDriver: createDto.atFaultDriver === 'yes',
+          atFaultDriver: createDto.atFaultDriver,
+          hitAndRun: createDto.hitAndRun,
           state: createDto.state,
           agreeToEmails: createDto.agreeToEmails || false,
           agreeToSms: createDto.agreeToSms || false,
+          user: { connect: { id: createDto.userId ?? '' } },
         },
       });
 
