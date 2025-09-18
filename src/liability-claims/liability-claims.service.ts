@@ -7,6 +7,8 @@ import { ListLiabilityClaimDto } from './dto/list-liability-claim.dto';
 import { Prisma } from '@prisma/client';
 import { UpdateLiabilityClaimDto } from './dto/update-liability-claim.dto';
 
+type OtpNotify = { channel: 'email' | 'phone'; contact: string; code: string };
+
 @Injectable()
 export class LiabilityClaimsService {
   constructor(
@@ -25,24 +27,39 @@ export class LiabilityClaimsService {
     );
   }
 
-  private async ensureUser(
+  private async ensureUserTx(
+    tx: Prisma.TransactionClient,
     email?: string,
     phoneNumber?: string,
     countryCode?: string,
   ): Promise<EnsureUserResult> {
     if (!email && !phoneNumber) return { id: null, existed: false };
 
-    const { exists, user } = await this.usersService.checkUserExists(
-      email,
-      phoneNumber,
-    );
-    if (exists && user) return { id: user.id, existed: true };
+    if (email) {
+      const u = await tx.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+      if (u) return { id: u.id, existed: true };
+    }
 
-    const created = await this.usersService.createUser({
-      email,
-      phoneNumber,
-      countryCode: countryCode,
-      isActive: true,
+    if (phoneNumber) {
+      const u = await tx.user.findUnique({
+        where: { phoneNumber },
+        select: { id: true },
+      });
+      if (u) return { id: u.id, existed: true };
+    }
+
+    const created = await tx.user.create({
+      data: {
+        email: email ?? null,
+        phoneNumber: phoneNumber ?? null,
+        countryCode: countryCode ?? '+1',
+        isActive: true,
+        role: { connect: { name: 'USER' } },
+      },
+      select: { id: true },
     });
     return { id: created.id, existed: false };
   }
@@ -62,44 +79,123 @@ export class LiabilityClaimsService {
 
   async create(dto: CreateLiabilityClaimDto) {
     try {
-      const countryCode = (dto.countryCode ?? 'us').toLowerCase();
+      const countryCode = dto.countryCode ?? 'us';
       const eligibility = this.computeEligibility(
         dto.atFaultDriver,
         dto.hitAndRun,
         dto.state,
       );
-      const [ensuredUser, claim] = await this.prisma.$transaction(
-        async (prisma) => {
-          const ensuredUser = await this.ensureUser(
+
+      if (!eligibility.eligible) {
+        const claim = await this.prisma.liabilityClaim.create({
+          data: {
+            email: dto.email ?? null,
+            phoneNumber: dto.phoneNumber ?? null,
+            countryCode:
+              typeof countryCode === 'string'
+                ? countryCode.toLowerCase()
+                : countryCode,
+            atFaultDriver: dto.atFaultDriver,
+            state: dto.state,
+            hitAndRun: dto.hitAndRun,
+            agreeToEmails: dto.agreeToEmails ?? false,
+            agreeToSms: dto.agreeToSms ?? false,
+          },
+        });
+
+        return {
+          claim,
+          eligibility,
+          user: null,
+        };
+      }
+
+      const { ensuredUser, claim, otp } = await this.prisma.$transaction(
+        async (tx) => {
+          const ensuredUser = await this.ensureUserTx(
+            tx,
             dto.email,
             dto.phoneNumber,
             countryCode,
           );
 
-          const claim = await prisma.liabilityClaim.create({
+          const claim = await tx.liabilityClaim.create({
             data: {
               email: dto.email ?? null,
-              countryCode,
+              phoneNumber: dto.phoneNumber ?? null,
+              countryCode:
+                typeof countryCode === 'string'
+                  ? countryCode.toLowerCase()
+                  : countryCode,
               atFaultDriver: dto.atFaultDriver,
               state: dto.state,
               hitAndRun: dto.hitAndRun,
               agreeToEmails: dto.agreeToEmails ?? false,
               agreeToSms: dto.agreeToSms ?? false,
-              user: { connect: { id: ensuredUser.id! } },
+              ...(ensuredUser.id
+                ? { user: { connect: { id: ensuredUser.id } } }
+                : {}),
             },
           });
 
-          return [ensuredUser, claim];
+          let channel: 'email' | 'phone' | null = null;
+          let contact: string | null = null;
+          if (dto.email) {
+            channel = 'email';
+            contact = dto.email;
+          } else if (dto.phoneNumber) {
+            channel = 'phone';
+            contact = dto.phoneNumber;
+          }
+
+          if (!channel && ensuredUser.id) {
+            const u = await tx.user.findUnique({
+              where: { id: ensuredUser.id },
+              select: { email: true, phoneNumber: true },
+            });
+            if (u?.email) {
+              channel = 'email';
+              contact = u.email;
+            } else if (u?.phoneNumber) {
+              channel = 'phone';
+              contact = u.phoneNumber;
+            }
+          }
+
+          let otp: OtpNotify | null = null;
+
+          if (ensuredUser.id && channel && contact) {
+            const { code } = await this.usersService.issueOtpTx(
+              tx,
+              ensuredUser.id,
+              channel,
+            );
+            otp = { channel, contact, code };
+          }
+
+          return { ensuredUser, claim, otp };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         },
       );
+
+      if (otp) {
+        await this.usersService.notifyOtp(otp.channel, otp.contact, otp.code);
+      }
 
       return {
         claim,
         eligibility,
-        user: { id: ensuredUser.id, existed: ensuredUser.existed },
+        user: ensuredUser.id
+          ? { id: ensuredUser.id, existed: ensuredUser.existed }
+          : null,
+        developmentOtp:
+          process.env.NODE_ENV === 'development' && otp ? otp.code : undefined,
       };
     } catch (error) {
       console.error(error);
+      throw error;
     }
   }
 
