@@ -9,7 +9,7 @@ import {
 
 export class UserDto {
   @IsOptional() @IsEmail() email?: string;
-  @IsOptional() @IsPhoneNumber() phoneNumber?: string;
+  @IsOptional() @IsPhoneNumber('US') phoneNumber?: string;
 
   @IsOptional() @IsString() @MaxLength(6) countryCode?: string;
 

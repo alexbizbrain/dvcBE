@@ -6,6 +6,6 @@ export class CheckUserExistsDto {
   email?: string;
 
   @IsOptional()
-  @IsPhoneNumber()
+  @IsPhoneNumber('US')
   phoneNumber?: string;
 }

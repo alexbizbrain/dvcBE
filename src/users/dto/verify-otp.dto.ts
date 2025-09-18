@@ -9,6 +9,6 @@ export class VerifyOtpDto {
   email?: string;
 
   @IsOptional()
-  @IsPhoneNumber()
+  @IsPhoneNumber('US')
   phoneNumber?: string;
 }

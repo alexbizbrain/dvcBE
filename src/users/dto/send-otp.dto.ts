@@ -6,6 +6,6 @@ export class SendOtpDto {
   email?: string;
 
   @IsOptional()
-  @IsPhoneNumber()
+  @IsPhoneNumber('US')
   phoneNumber?: string;
 }
