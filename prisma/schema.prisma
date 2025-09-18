@@ -19,27 +19,49 @@ model Role {
 }
 
 model User {
-  id              String    @id @default(cuid())
-  email           String?   @unique
-  phoneNumber     String?   @unique
-  countryCode     String?   @default("+1")
+  id              String           @id @default(cuid())
+  email           String?          @unique
+  phoneNumber     String?          @unique
+  countryCode     String?          @default("+1")
   firstName       String?
   lastName        String?
   password        String?
-  isEmailVerified Boolean   @default(false)
-  isPhoneVerified Boolean   @default(false)
-  isActive        Boolean   @default(true)
+  isEmailVerified Boolean          @default(false)
+  isPhoneVerified Boolean          @default(false)
+  isActive        Boolean          @default(true)
   lastLoginAt     DateTime?
   roleId          String
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  isBusinessUser  Boolean   @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  isBusinessUser  Boolean          @default(false)
   otps            Otp[]
-  role            Role      @relation(fields: [roleId], references: [id])
+  role            Role             @relation(fields: [roleId], references: [id])
   liabilityClaims LiabilityClaim[]
   claims          Claim[]
+  cars            Car[]
 
   @@map("users")
+}
+
+model Car {
+  id      String  @id @default(uuid())
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  make    String?
+  model   String?
+  vin     String?
+  year    Int?
+  mileage Int?
+
+  // One car can have multiple accidents / claims
+  claims Claim[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId], name: "idx_cars_user_id")
+  @@index([vin], name: "idx_cars_vin")
+  @@map("cars")
 }
 
 model Otp {
@@ -68,7 +90,9 @@ model LiabilityClaim {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   userId        String?
-  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  claimId       String?  @unique
+  claim         Claim?   @relation(fields: [claimId], references: [id], onDelete: Cascade)
 
   @@index([email], map: "idx_liability_claims_email")
   @@index([phoneNumber], map: "idx_liability_claims_phone_number")
@@ -104,26 +128,262 @@ model Review {
 }
 
 model Claim {
-  id          String   @id @default(cuid())
-  userId      String
+  id     String @id @default(cuid())
+  userId String
+  carId  String
 
   // Progress tracking
-  currentStep     Int      @default(1)
-  status          String   @default("draft") // "draft" or "completed"
-  lastAccessedAt  DateTime @default(now())
+  currentStep    Int        @default(1)
+  status         ClaimStage @default(DRAFT) // "draft" or "completed"
+  lastAccessedAt DateTime   @default(now())
 
   // JSON fields for each step
-  vehicleInfo     Json?    // Step 1: Vehicle Information
-  accidentInfo    Json?    // Step 2: Accident Information
-  insuranceInfo   Json?    // Step 3: Insurance Information
-  pricingPlan     Json?    // Step 4: Pricing Plan
+  vehicleInfo   Json? // Step 1: Vehicle Information
+  accidentInfo  Json? // Step 2: Accident Information
+  insuranceInfo Json? // Step 3: Insurance Information
+  pricingPlan   Json? // Step 4: Pricing Plan
+
+  isClosed Boolean @default(false)
 
   // Metadata
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car                  Car                   @relation(fields: [carId], references: [id], onDelete: Cascade)
+  RepairEstimate       RepairEstimate[]
+  RepairCompletion     RepairCompletion?
+  CustomerContract     CustomerContract?
+  InsuranceSubmission  InsuranceSubmission[]
+  InsuranceResponse    InsuranceResponse[]
+  SettlementOffer      SettlementOffer[]
+  InsuranceReleaseForm InsuranceReleaseForm?
+  Payout               Payout[]
+  ContingencyInvoice   ContingencyInvoice[]
+  ClaimStatusHistory   ClaimStatusHistory[]
+  ClaimDocument        ClaimDocument[]
+  LiabilityClaim       LiabilityClaim?
 
   @@map("claims")
+}
+
+model RepairEstimate {
+  id      String @id @default(uuid())
+  claimId String
+  claim   Claim  @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  typ     EstimateType
+  amount  Decimal?
+  fileUrl String? // PDF/image of the estimate
+  notes   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([claimId], name: "idx_repair_estimates_claim_id")
+  @@index([typ], name: "idx_repair_estimates_typ")
+  @@map("repair_estimates")
+}
+
+model RepairCompletion {
+  id           String    @id @default(uuid())
+  claimId      String    @unique
+  claim        Claim     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  fixedAt      DateTime?
+  finalMileage Int?
+  invoiceUrl   String?
+  notes        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("repair_completions")
+}
+
+model CustomerContract {
+  id       String    @id @default(uuid())
+  claimId  String    @unique
+  claim    Claim     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  signedAt DateTime?
+  fileUrl  String?
+  status   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("customer_contracts")
+}
+
+// loop
+
+model InsuranceSubmission {
+  id      String @id @default(uuid())
+  claimId String
+  claim   Claim  @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  round       Int               @default(1)
+  status      NegotiationStatus @default(DRAFT)
+  requestDoc  String? // request body/file/url
+  approvedAt  DateTime? // when customer approved
+  submittedAt DateTime?
+  meta        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([claimId, round], name: "idx_insurance_submissions_claim_id_round")
+  @@map("insurance_submissions")
+}
+
+model InsuranceResponse {
+  id      String @id @default(uuid())
+  claimId String
+  claim   Claim  @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  round        Int
+  responseDoc  String?
+  insurerNotes String?
+  meta         Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([claimId, round], name: "idx_insurance_responses_claim_id_round")
+  @@map("insurance_responses")
+}
+
+model SettlementOffer {
+  id      String @id @default(uuid())
+  claimId String
+  claim   Claim  @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  round   Int
+  amount  Decimal?
+  status  OfferStatus @default(PENDING)
+  isFinal Boolean     @default(false)
+  docUrl  String?
+  meta    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([claimId, isFinal], name: "idx_settlement_offers_claim_id_is_final")
+  @@map("settlement_offers")
+}
+
+model InsuranceReleaseForm {
+  id       String    @id @default(uuid())
+  claimId  String    @unique
+  claim    Claim     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  fileUrl  String?
+  signedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("insurance_release_forms")
+}
+
+model Payout {
+  id        String    @id @default(uuid())
+  claimId   String
+  claim     Claim     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  paidAt    DateTime?
+  amount    Decimal?
+  reference String? // check no / transfer id
+  method    String? // ACH, wire, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payouts")
+}
+
+model ContingencyInvoice {
+  id         String        @id @default(uuid())
+  claimId    String
+  claim      Claim         @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  issuedAt   DateTime?
+  amount     Decimal?
+  status     InvoiceStatus @default(DRAFT)
+  paymentUrl String?
+  paidAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([claimId], name: "idx_contingency_invoices_claim_id")
+  @@map("contingency_invoices")
+}
+
+model ClaimStatusHistory {
+  id        String      @id @default(uuid())
+  claimId   String
+  claim     Claim       @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  fromStage ClaimStage?
+  toStage   ClaimStage?
+  note      String?
+  at        DateTime    @default(now())
+
+  createdAt DateTime @default(now())
+
+  @@index([claimId], name: "idx_claim_status_histories_claim_id")
+  @@map("claim_status_histories")
+}
+
+model ClaimDocument {
+  id      String @id @default(uuid())
+  claimId String
+  claim   Claim  @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  kind       String? // 'ESTIMATE_BEFORE', 'ESTIMATE_AFTER', 'CONTRACT', 'REQUEST', 'RESPONSE', 'RELEASE', 'INVOICE', etc.
+  title      String?
+  fileUrl    String?
+  uploadedAt DateTime @default(now())
+  meta       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([claimId], name: "idx_claim_documents_claim_id")
+  @@map("claim_documents")
+}
+
+enum ClaimStage {
+  DRAFT
+  ESTIMATES_COLLECTED
+  REPAIR_COMPLETED
+  DV_CREATED
+  SUBMITTED_TO_INSURER
+  NEGOTIATION
+  FINAL_OFFER_MADE
+  RELEASE_SIGNED
+  PAID
+  CLOSED
+}
+
+enum EstimateType {
+  BEFORE_REPAIR
+  AFTER_REPAIR
+}
+
+enum NegotiationStatus {
+  DRAFT
+  CUSTOMER_APPROVED
+  SUBMITTED
+  RESPONDED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
 }

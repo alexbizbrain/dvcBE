@@ -5,7 +5,7 @@ import { CalculatorProgressResponseDto } from './dto/calculator-progress-respons
 
 @Injectable()
 export class CalculatorProgressService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async getProgress(
     userId: string,
@@ -14,7 +14,7 @@ export class CalculatorProgressService {
     const claim = await this.prisma.claim.findFirst({
       where: {
         userId,
-        status: 'draft',
+        status: 'DRAFT',
       },
     });
 
@@ -33,7 +33,7 @@ export class CalculatorProgressService {
     const existingDraft = await this.prisma.claim.findFirst({
       where: {
         userId,
-        status: 'draft',
+        status: 'DRAFT',
       },
     });
 
@@ -88,7 +88,7 @@ export class CalculatorProgressService {
       claim = await this.prisma.claim.create({
         data: {
           userId,
-          status: 'draft',
+          status: 'DRAFT',
           ...updateData,
         },
       });
@@ -103,12 +103,12 @@ export class CalculatorProgressService {
       await this.prisma.claim.deleteMany({
         where: {
           userId,
-          status: 'draft',
+          status: 'DRAFT',
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       // If no draft claim exists, that's fine - nothing to clear
-      console.log('No draft claim to clear for user:', userId);
+      console.log('No draft claim to clear for user:', userId, error);
     }
   }
 
@@ -116,7 +116,7 @@ export class CalculatorProgressService {
     const draftClaim = await this.prisma.claim.findFirst({
       where: {
         userId,
-        status: 'draft',
+        status: 'DRAFT',
       },
     });
 
@@ -128,7 +128,7 @@ export class CalculatorProgressService {
     await this.prisma.claim.update({
       where: { id: draftClaim.id },
       data: {
-        status: 'completed',
+        status: 'COMPLETED',
         currentStep: 4, // Mark as completed
         lastAccessedAt: new Date(),
       },
@@ -146,10 +146,10 @@ export class CalculatorProgressService {
 
     const totalClaims = await this.prisma.claim.count();
     const completedClaims = await this.prisma.claim.count({
-      where: { status: 'completed' },
+      where: { status: 'COMPLETED' },
     });
     const draftClaims = await this.prisma.claim.count({
-      where: { status: 'draft' },
+      where: { status: 'DRAFT' },
     });
 
     // Get unique users who started the calculator
@@ -205,7 +205,7 @@ export class CalculatorProgressService {
     return {
       id: claim.id,
       currentStep: claim.currentStep,
-      isSubmitted: claim.status === 'completed',
+      isSubmitted: claim.status === 'COMPLETED',
       lastAccessedAt: claim.lastAccessedAt,
       vehicleInfo: {
         year: vehicleInfo.year || vehicleInfo.vehicleYear,

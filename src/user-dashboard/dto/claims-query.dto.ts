@@ -1,20 +1,39 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class PageQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page: number = 1;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
   pageSize: number = 10;
+
+  // Keyset pagination (cursor) — opaque string from the previous response
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+}
+
+export enum UiStatus {
+  DRAFT = 'DRAFT',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
 }
 
 export class ClaimsQueryDto extends PageQueryDto {
   @IsOptional()
-  @IsIn(['IN_PROGRESS', 'COMPLETED'])
-  status?: 'IN_PROGRESS' | 'COMPLETED';
+  @IsEnum(UiStatus)
+  status?: UiStatus;
+
+  // Free-text search over denormalized columns (see indexing notes below)
+  @IsOptional()
+  @IsString()
+  q?: string;
+
+  // Optional: limit search width to reduce DB pressure
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  searchLimit: number = 50;
 }

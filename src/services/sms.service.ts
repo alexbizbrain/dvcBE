@@ -100,7 +100,7 @@ export class SmsService {
       this.logger.log(
         `OTP SMS sent successfully to ${formattedPhoneNumber}, MessageSid: ${twilioMessage.sid}`,
       );
-      console.log(twilioMessage)
+      console.log(twilioMessage);
 
       return {
         success: true,
