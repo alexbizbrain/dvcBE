@@ -9,7 +9,9 @@ export class AdminSeeder implements Seeder {
 
     const hashedPassword = await bcrypt.hash('Admin@123', 10);
 
-    const adminRole = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
+    const adminRole = await prisma.role.findUnique({
+      where: { name: 'ADMIN' },
+    });
     if (!adminRole) {
       throw new Error('Admin role not found. Run RoleSeeder first.');
     }

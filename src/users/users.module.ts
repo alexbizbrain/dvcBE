@@ -19,7 +19,13 @@ import { SmsService } from '../services/sms.service';
     }),
   ],
   controllers: [UsersController],
-  providers: [UsersService, PrismaService, EmailService, AuthService, SmsService],
-  exports: [UsersService]
+  providers: [
+    UsersService,
+    PrismaService,
+    EmailService,
+    AuthService,
+    SmsService,
+  ],
+  exports: [UsersService],
 })
 export class UsersModule {}

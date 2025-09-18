@@ -7,8 +7,6 @@ import { CalculatorProgressService } from 'src/calculator-progress/calculator-pr
 type UiStatus = 'IN_PROGRESS' | 'COMPLETED';
 
 const toUiStatus = (row: any): UiStatus => {
-  // If your LiabilityClaim has `status` enum, prefer that.
-  // Otherwise map via `isClosed` boolean if present.
   if (row?.status === 'COMPLETED' || row?.isClosed === true) return 'COMPLETED';
   return 'IN_PROGRESS';
 };
@@ -19,32 +17,25 @@ const titleFrom = (o: {
   vehicleVin?: string | null;
 }): string => {
   const base = `${o.vehicleMake ?? 'Vehicle'} ${o.vehicleModel ?? ''}`.trim();
-  // If you have a plate code instead, replace vin with that field
   const right = o.vehicleVin ? ` - ${o.vehicleVin}` : '';
   return `${base}${right}`.trim();
 };
 
 const dmy = (d?: Date | null | string): string => {
   if (!d) return '';
-  if (typeof d === 'string') return d; // your CalculatorProgress.accidentDate is a string
+  if (typeof d === 'string') return d;
   const dd = String(d.getDate()).padStart(2, '0');
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const yyyy = d.getFullYear();
   return `${dd}-${mm}-${yyyy}`;
 };
 
-// const parseMoneyFromString = (val?: string | null) => {
-//   if (!val) return 0;
-//   const n = Number(String(val).replace(/[^\d.]/g, ''));
-//   return Number.isFinite(n) ? n : 0;
-// };
-
 @Injectable()
 export class UserDashboardService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly _calculatorProgressService: CalculatorProgressService,
-  ) {}
+  ) { }
 
   async getSummary(userId: string) {
     // const [activeClaims, totalClaims /* amount */] = await Promise.all([
@@ -64,67 +55,107 @@ export class UserDashboardService {
     return { activeClaims: 10, totalClaims: 20, totalClaimAmount: 500 };
   }
 
+  /**
+   * Helpers to safely extract JSON fields from the Claim row
+   */
+  private vehicleFrom(row: any) {
+    const v = (row?.vehicleInfo) ?? {};
+    // normalize names used in older code
+    return {
+      vehicleMake: v.make ?? v.vehicleMake ?? null,
+      vehicleModel: v.model ?? v.vehicleModel ?? null,
+      vehicleVin: v.vin ?? v.vehicleVin ?? null,
+      vehicleYear: v.year ?? v.vehicleYear ?? null,
+      vehicleMileage: v.mileage ?? v.vehicleMileage ?? null,
+    };
+  }
+
+  private accidentFrom(row: any) {
+    const a = (row?.accidentInfo) ?? {};
+    return {
+      accidentDate: a.date ?? a.accidentDate ?? null,
+      // add any other accident fields you expect
+    };
+  }
+
+  private insuranceFrom(row: any) {
+    const ins = (row?.insuranceInfo) ?? {};
+    return {
+      yourInsurance: ins.yourInsurance ?? null,
+      atFaultInsurance: ins.atFaultInsurance ?? null,
+      claimNumber: ins.claimNumber ?? null,
+      adjusterName: ins.adjusterName ?? null,
+    };
+  }
+
+  private pricingFrom(row: any) {
+    return (row?.pricingPlan) ?? {};
+  }
+
   async getActiveClaim(userId: string) {
-    const claim = await this.prismaService.liabilityClaim.findFirst({
+    // first try to find a finalized claim (latest)
+    const claim = await this.prismaService.claim.findFirst({
       where: {
         userId,
-        // OR: [
-        //   { isClosed: false },
-        //   { status: 'IN_PROGRESS' as any },
-        //   { status: null },
-        // ],
+        // add additional filters for 'active' if needed
       },
       orderBy: { updatedAt: 'desc' },
     });
 
     if (claim) {
+      // read from JSON fields if present, fallback to safe defaults
+      const v = this.vehicleFrom(claim);
+      const a = this.accidentFrom(claim);
+      const ins = this.insuranceFrom(claim);
+
       return {
         id: claim.id,
         title: titleFrom({
-          vehicleMake: 'Honda', // claim.vehicleMake,
-          vehicleModel: 'Civic', // claim.vehicleModel,
-          vehicleVin: 'FY-2914', // claim.vehicleVin,
+          vehicleMake: v.vehicleMake ?? 'Vehicle',
+          vehicleModel: v.vehicleModel ?? '',
+          vehicleVin: v.vehicleVin ?? '',
         }),
         status: toUiStatus(claim),
         details: {
-          vehicleYear: '2000', // claim.vehicleYear ?? '',
-          make: 'Honda', // `${claim.vehicleMake ?? ''} ${claim.vehicleModel ?? ''}`.trim(),
-          model: 'Civic', // claim.vehicleVin ?? '',
-          currentMileage: '10000 km', // claim.vehicleMileage
-          // ? `${claim.vehicleMileage} km`
-          // : '',
-          dateOfAccident: '2020-08-12', // dmy(claim.accidentDate ?? null), // Date or null depending on your schema
-          insuranceProvider: 'EFU Insurance', // claim.yourInsurance ?? claim.atFaultInsurance ?? '',
-          claimNumber: '12954640747', // claim.claimNumber ?? '',
-          adjusterName: 'John David', // claim.adjusterName ?? '',
+          vehicleYear: v.vehicleYear ?? '',
+          make: `${v.vehicleMake ?? ''} ${v.vehicleModel ?? ''}`.trim(),
+          model: v.vehicleVin ?? '',
+          currentMileage: v.vehicleMileage ? `${v.vehicleMileage} km` : '',
+          dateOfAccident: a.accidentDate ? dmy(a.accidentDate as any) : '',
+          insuranceProvider: ins.yourInsurance ?? ins.atFaultInsurance ?? '',
+          claimNumber: ins.claimNumber ?? '',
+          adjusterName: ins.adjusterName ?? '',
         },
       };
     }
 
-    const draft = await this.prismaService.calculatorProgress.findUnique({
+    // if no finalized claim, look for a draft (also findFirst by userId)
+    const draft = await this.prismaService.claim.findFirst({
       where: { userId },
     });
     if (!draft) return null;
 
+    const dv = this.vehicleFrom(draft);
+    const da = this.accidentFrom(draft);
+    const di = this.insuranceFrom(draft);
+
     return {
       id: 'draft',
       title: titleFrom({
-        vehicleMake: draft.vehicleMake,
-        vehicleModel: draft.vehicleModel,
-        vehicleVin: draft.vehicleVin,
+        vehicleMake: dv.vehicleMake,
+        vehicleModel: dv.vehicleModel,
+        vehicleVin: dv.vehicleVin,
       }),
       status: 'IN_PROGRESS' as UiStatus,
       details: {
-        vehicleYear: draft.vehicleYear ?? '',
-        make: `${draft.vehicleMake ?? ''} ${draft.vehicleModel ?? ''}`.trim(),
-        model: draft.vehicleVin ?? '',
-        currentMileage: draft.vehicleMileage
-          ? `${draft.vehicleMileage} km`
-          : '',
-        dateOfAccident: draft.accidentDate ?? '',
-        insuranceProvider: draft.yourInsurance ?? draft.atFaultInsurance ?? '',
-        claimNumber: draft.claimNumber ?? '',
-        adjusterName: draft.adjusterName ?? '',
+        vehicleYear: dv.vehicleYear ?? '',
+        make: `${dv.vehicleMake ?? ''} ${dv.vehicleModel ?? ''}`.trim(),
+        model: dv.vehicleVin ?? '',
+        currentMileage: dv.vehicleMileage ? `${dv.vehicleMileage} km` : '',
+        dateOfAccident: da.accidentDate ?? '',
+        insuranceProvider: di.yourInsurance ?? di.atFaultInsurance ?? '',
+        claimNumber: di.claimNumber ?? '',
+        adjusterName: di.adjusterName ?? '',
       },
     };
   }
@@ -152,48 +183,61 @@ export class UserDashboardService {
       pageSize,
       totalPages,
       totalItems,
-      items: rows.map((c) => ({
-        id: c.id,
-        title: titleFrom({
-          vehicleMake: 'Honda', // c.vehicleMake,
-          vehicleModel: 'Civic', // c.vehicleModel,
-          vehicleVin: 'FY-2914', // c.vehicleVin,
-        }),
-        status: toUiStatus(c),
-        createdAt: '2020-08-12', // dmy(c.createdAt as any), // Date
-        details: {
-          vehicleYear: '2000', // c.vehicleYear ?? '',
-          make: 'Honda', // `${c.vehicleMake ?? ''} ${c.vehicleModel ?? ''}`.trim(),
-          model: 'Civic', // c.vehicleVin ?? '',
-          currentMileage: '10000 km', // c.vehicleMileage ? `${c.vehicleMileage} km` : '',
-          dateOfAccident: '2020-08-12', // dmy((c as any).accidentDate ?? null),
-          insuranceProvider: 'EFU Insurance', // c.yourInsurance ?? c.atFaultInsurance ?? '',
-          claimNumber: '12954640747', // c.claimNumber ?? '',
-          adjusterName: 'John David', // c.adjusterName ?? '',
-        },
-      })),
+      items: rows.map((c) => {
+        // If liabilityClaim has JSON vehicle fields, extract similarly. For now use placeholders
+        // (you can replace with actual extraction like in getActiveClaim if schema matches)
+        return {
+          id: c.id,
+          title: titleFrom({
+            vehicleMake: 'Honda', // replace with actual parsed value if available
+            vehicleModel: 'Civic',
+            vehicleVin: 'FY-2914',
+          }),
+          status: toUiStatus(c),
+          createdAt: dmy(c.createdAt as any),
+          details: {
+            vehicleYear: '2000',
+            make: 'Honda',
+            model: 'Civic',
+            currentMileage: '10000 km',
+            dateOfAccident: '2020-08-12',
+            insuranceProvider: 'EFU Insurance',
+            claimNumber: '12954640747',
+            adjusterName: 'John David',
+          },
+        };
+      }),
     };
   }
 
   async getLatestDocuments(userId: string, limit = 2) {
-    // If you later add a ClaimDocument model, prefer it here.
-    // For now, use the calculator invoice as "document".
-    const draft = await this.prismaService.calculatorProgress.findUnique({
+    // Use findFirst by userId (userId not unique)
+    const draft = await this.prismaService.claim.findFirst({
       where: { userId },
+      orderBy: { updatedAt: 'desc' },
     });
-    if (draft?.repairInvoiceFileUrl) {
+
+    // try to read repairInvoiceFileUrl from pricingPlan JSON (or wherever you store it)
+    const pricing = this.pricingFrom(draft as any);
+    const invoiceUrl =
+      pricing?.repairInvoiceFileUrl ??
+      (draft as any)?.repairInvoiceFileUrl ??
+      null;
+
+    if (invoiceUrl) {
       return {
         items: [
           {
-            id: draft.id,
-            title: titleFrom(draft as any),
-            date: dmy(draft.updatedAt),
-            previewUrl: draft.repairInvoiceFileUrl,
-            fileUrl: draft.repairInvoiceFileUrl,
+            id: draft?.id ?? 'draft',
+            title: titleFrom(this.vehicleFrom(draft as any)),
+            date: dmy(draft?.updatedAt as any),
+            previewUrl: invoiceUrl,
+            fileUrl: invoiceUrl,
           },
         ].slice(0, limit),
       };
     }
+
     return { items: [] };
   }
 }

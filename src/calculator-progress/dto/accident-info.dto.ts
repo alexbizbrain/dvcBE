@@ -21,5 +21,13 @@ export class AccidentInfoDto {
 
   @IsOptional()
   @IsString()
+  repairInvoiceFileName?: string;
+
+  @IsOptional()
+  @IsString()
+  repairInvoiceFileUrl?: string;
+
+  @IsOptional()
+  @IsString()
   nextAction?: string;
 }

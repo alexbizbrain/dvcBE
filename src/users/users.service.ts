@@ -108,7 +108,8 @@ export class UsersService {
     const channel: 'email' | 'phone' = email ? 'email' : 'phone';
     const windowMs = this.OTP_WINDOW_MIN * 60 * 1000;
     const windowStart = new Date(now.getTime() - windowMs);
-
+    // --- create new OTP ---
+    const otpCode = this.generateOtp();
     // Do all checks and creation inside a serializable transaction
     const result = await this.prismaService.$transaction(
       async (tx) => {
@@ -172,8 +173,6 @@ export class UsersService {
           data: { isUsed: true },
         });
 
-        // --- create new OTP ---
-        const otpCode = this.generateOtp();
         const expiresAt = new Date(
           now.getTime() + this.OTP_TTL_MIN * 60 * 1000,
         );
@@ -233,8 +232,20 @@ export class UsersService {
       };
     }
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`OTP for ${phoneNumber}: ${result.otpCode}`);
+    // Send OTP via SMS if phone number is provided
+    if (phoneNumber) {
+      const smsSent = await this.smsService.sendOtpSms(phoneNumber, otpCode);
+      if (!smsSent) {
+        throw new Error('Failed to send OTP SMS');
+      }
+
+      return {
+        success: true,
+        message: `OTP sent to ${phoneNumber}`,
+        // Remove this in production:
+        developmentOtp:
+          process.env.NODE_ENV === 'development' ? otpCode : undefined,
+      };
     }
     return { ...responseBase, message: `OTP sent to ${phoneNumber}` };
   }
