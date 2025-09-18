@@ -306,6 +306,92 @@ export class UsersService {
     return true;
   }
 
+  async issueOtpTx(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    channel: 'email' | 'phone',
+    now = new Date(),
+  ): Promise<{ code: string; remainingInWindow: number }> {
+    const windowMs = this.OTP_WINDOW_MIN * 60 * 1000;
+    const windowStart = new Date(now.getTime() - windowMs);
+
+    const whereBase: Prisma.OtpWhereInput = {
+      userId,
+      createdAt: { gte: windowStart },
+    };
+    if (this.LIMIT_PER_CHANNEL) whereBase.type = channel;
+
+    const recentCount = await tx.otp.count({ where: whereBase });
+
+    if (recentCount >= this.OTP_MAX_PER_WINDOW) {
+      const oldestInWindow = await tx.otp.findFirst({
+        where: whereBase,
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      });
+      const resetMs = oldestInWindow
+        ? oldestInWindow.createdAt.getTime() + windowMs - now.getTime()
+        : windowMs;
+      const remainingSec = Math.max(0, Math.ceil(resetMs / 1000));
+      throw new TooManyRequestsException({
+        message: `OTP send limit reached. Try again in ${remainingSec}s`,
+        $metadata: { httpStatusCode: 429 },
+      });
+    }
+
+    const lastActive = await tx.otp.findFirst({
+      where: { userId, isUsed: false },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+      take: 1,
+    });
+
+    if (lastActive) {
+      const diffSec = (now.getTime() - lastActive.createdAt.getTime()) / 1000;
+      if (diffSec < this.OTP_MIN_INTERVAL_SEC) {
+        const waitSec = Math.ceil(this.OTP_MIN_INTERVAL_SEC - diffSec);
+        throw new TooManyRequestsException({
+          message: `OTP already sent recently. Please wait ${waitSec}s`,
+          $metadata: { httpStatusCode: 429 },
+        });
+      }
+    }
+
+    await tx.otp.updateMany({
+      where: { userId, isUsed: false, expiresAt: { gt: now } },
+      data: { isUsed: true },
+    });
+
+    const code = this.generateOtp();
+    const expiresAt = new Date(now.getTime() + this.OTP_TTL_MIN * 60 * 1000);
+
+    await tx.otp.create({
+      data: { code, type: channel, userId, expiresAt },
+    });
+
+    return {
+      code,
+      remainingInWindow: Math.max(
+        0,
+        this.OTP_MAX_PER_WINDOW - (recentCount + 1),
+      ),
+    };
+  }
+
+  async notifyOtp(
+    channel: 'email' | 'phone',
+    contact: string,
+    code: string,
+  ): Promise<void> {
+    if (channel === 'email') {
+      const ok = await this.emailService.sendOtpEmail(contact, code);
+      if (!ok) throw new BadRequestException('Failed to send OTP email');
+      return;
+    }
+    const smsSent = await this.smsService.sendOtpSms(contact, code);
+    if (!smsSent) throw new BadRequestException('Failed to send OTP SMS');
+  }
+
   private generateOtp(): string {
     // cryptographically stronger 6-digit OTP
     return String(randomInt(0, 1_000_000)).padStart(6, '0');
