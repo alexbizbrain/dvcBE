@@ -54,13 +54,13 @@ export class UsersController {
   async verifyOtp(@Body() dto: VerifyOtpDto) {
     const result = await this.usersService.verifyOtp(dto);
     const token = await this.authService.issueAccessTokenForUserId(
-      result.user.id,
+      result.userId,
     );
     return {
       ...result,
       message: result.message,
       token,
-      user: result.user,
+      user: result.userId,
     };
   }
 
