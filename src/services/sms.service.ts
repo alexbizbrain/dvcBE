@@ -153,7 +153,7 @@ export class SmsService {
 
   private createOtpMessage(otp: string): string {
     const appName = this.configService.getOrThrow('APP_NAME', 'DVCC');
-    return `Your ${appName} verification code is: ${otp}\n\nThis code expires in 10 minutes.\n\nDon't share this code with anyone.`;
+    return `Your ${appName} verification code is: ${otp}\n\nThis code expires in 2 hours.\n\nDon't share this code with anyone.`;
   }
 
   // Utility method to validate phone number
