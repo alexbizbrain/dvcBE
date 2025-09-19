@@ -108,7 +108,6 @@ export class UsersService {
     const channel: 'email' | 'phone' = email ? 'email' : 'phone';
     const contact = email ?? phoneNumber;
 
-
     const { code } = await this.prismaService.$transaction(
       (tx) => this.issueOtpTx(tx, user.id, channel, now),
       {
@@ -206,8 +205,6 @@ export class UsersService {
 
     const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
     const expiresAt = new Date(now.getTime() + TWO_HOURS_MS);
-
-    const expiresAt = new Date(now.getTime() + this.OTP_TTL_MIN * 60 * 60 * 1000); // 2 hrs in milliseconds
 
     await tx.otp.create({
       data: {
