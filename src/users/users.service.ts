@@ -16,7 +16,7 @@ import { SmsService } from '../services/sms.service';
 
 @Injectable()
 export class UsersService {
-  private readonly OTP_TTL_MIN = 10; // code lives 10 minutes
+  private readonly OTP_TTL_MIN = 2; // code lives 10 minutes
   private readonly OTP_MIN_INTERVAL_SEC = 60; // at least 60s between sends
   private readonly OTP_MAX_PER_WINDOW = 3; // max 3 sends...
   private readonly OTP_WINDOW_MIN = 15; // ...per 15 minutes
@@ -174,7 +174,7 @@ export class UsersService {
         });
 
         const expiresAt = new Date(
-          now.getTime() + this.OTP_TTL_MIN * 60 * 1000,
+          now.getTime() + this.OTP_TTL_MIN * 60 * 60 * 1000, // 2 hrs in milliseconds
         );
 
         await tx.otp.create({
@@ -363,7 +363,7 @@ export class UsersService {
     });
 
     const code = this.generateOtp();
-    const expiresAt = new Date(now.getTime() + this.OTP_TTL_MIN * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + this.OTP_TTL_MIN * 60 * 60 * 1000); // 2 hrs in milliseconds
 
     await tx.otp.create({
       data: { code, type: channel, userId, expiresAt },
