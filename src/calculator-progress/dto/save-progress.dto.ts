@@ -15,7 +15,7 @@ import { PricingPlanDto } from './pricing-plan.dto';
 export class SaveProgressDto {
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(5)
   currentStep?: number;
 
