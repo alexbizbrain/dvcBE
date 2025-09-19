@@ -22,7 +22,7 @@ const tokenExtractor = (req: Request) => {
 
 @Global()
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private configService: ConfigService) {
     super({
       jwtFromRequest: tokenExtractor,
@@ -34,6 +34,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload) {
+    console.log(
+      'jwt strategy validateeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+      payload,
+    );
     if (!payload?.sub)
       throw new UnauthorizedException('Token payload missing subject');
     return {

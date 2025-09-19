@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { QueryLiabilityClaimsDto } from './dto/query-liability-claims.dto';
-import { CreateLiabilityClaimAdminDto } from './dto/create-liability-claim-admin.dto';
 import { UpdateLiabilityClaimDto } from './dto/update-liability-claim.dto';
 import { Prisma } from '@prisma/client';
 
@@ -26,44 +25,6 @@ export interface PaginatedLiabilityClaims {
 @Injectable()
 export class AdminLiabilityClaimsService {
   constructor(private prisma: PrismaService) {}
-
-  async create(createDto: CreateLiabilityClaimAdminDto) {
-    try {
-      // Validate that either email or phone is provided
-      if (!createDto.email && !createDto.phoneNumber) {
-        throw new BadRequestException(
-          'Either email or phone number is required',
-        );
-      }
-
-      const claim = await this.prisma.liabilityClaim.create({
-        data: {
-          email: createDto.email,
-          phoneNumber: createDto.phoneNumber,
-          countryCode: createDto.countryCode || 'us',
-          atFaultDriver: createDto.atFaultDriver,
-          hitAndRun: createDto.hitAndRun,
-          state: createDto.state,
-          agreeToEmails: createDto.agreeToEmails || false,
-          agreeToSms: createDto.agreeToSms || false,
-          user: { connect: { id: createDto.userId ?? '' } },
-        },
-      });
-
-      return {
-        success: true,
-        message: 'Liability claim created successfully',
-        data: claim,
-      };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        'Failed to create liability claim',
-      );
-    }
-  }
 
   async findAll(
     queryDto: QueryLiabilityClaimsDto,

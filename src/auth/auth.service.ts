@@ -15,6 +15,7 @@ export class AuthService {
   async issueAccessTokenForUserId(userId: string): Promise<string> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
+
       select: { id: true, email: true, roleId: true },
     });
     if (!user) throw new UnauthorizedException('User not found');

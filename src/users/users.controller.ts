@@ -56,11 +56,12 @@ export class UsersController {
     const token = await this.authService.issueAccessTokenForUserId(
       result.userId,
     );
+    const user = await this.usersService.getSafeUserById(result.userId);
     return {
       ...result,
       message: result.message,
       token,
-      user: result.userId,
+      user,
     };
   }
 

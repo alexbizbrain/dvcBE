@@ -4,17 +4,13 @@ import {
   Delete,
   Param,
   Query,
-  UseGuards,
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
 import { AdminCustomerQueriesService } from './admin-customer-queries.service';
 import { QueryCustomerQueriesDto } from './dto/query-customer-queries.dto';
-import { JwtAuthGuard } from '../auth/admin-auth.guards';
-import { AdminGuard } from '../auth/admin.guard';
 
 @Controller('admin/customer-queries')
-@UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminCustomerQueriesController {
   constructor(
     private readonly adminCustomerQueriesService: AdminCustomerQueriesService,

@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma.service';
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: {
-        expiresIn: '15m',
+        expiresIn: '5h',
         issuer: process.env.JWT_ISS,
         audience: process.env.JWT_AUD,
       },
