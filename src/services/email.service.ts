@@ -46,7 +46,7 @@ export class EmailService {
       const emailTemplates = this.generateOTPEmailTemplate({
         otpCode: otp,
         customerEmail: to,
-        expirationMinutes: '10',
+        expirationHours: '2',
       });
 
       const sendEmailCommand = new SendEmailCommand({
@@ -104,10 +104,10 @@ export class EmailService {
   private generateOTPEmailTemplate(data: {
     otpCode: string;
     customerEmail: string;
-    expirationMinutes?: string;
+    expirationHours?: string;
   }): { html: string; text: string } {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const expirationMinutes = data.expirationMinutes;
+    const expirationHours = data.expirationHours;
 
     // Gmail-compatible HTML template using tables and inline styles
     const htmlTemplate = `<!DOCTYPE html>
@@ -188,7 +188,7 @@ export class EmailService {
                                 <!-- Expiry info -->
                                 <tr>
                                     <td align="center" style="color: #f39c12; font-size: 16px; font-weight: bold; padding: 12px; background-color: rgba(243, 156, 18, 0.1); border-radius: 8px; border-left: 4px solid #f39c12;">
-                                        ⏰ This code will expire in <strong>${expirationMinutes} minutes</strong>
+                                        ⏰ This code will expire in <strong>${expirationHours} hours</strong>
                                     </td>
                                 </tr>
                             </table>
@@ -281,7 +281,7 @@ We received a request to verify your account.
 
 Your verification code is: ${data.otpCode}
 
-This code will expire in ${expirationMinutes} minutes.
+This code will expire in ${expirationHours} hours.
 
 Security Notice: Never share this code with anyone. DVCC staff will never ask for your verification code via phone, email, or text message.
 
