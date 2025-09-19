@@ -10,7 +10,6 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import { AdminReviewsService } from './admin-reviews.service';
 import { ReviewDto } from './dto/review.dto';
@@ -21,7 +20,6 @@ import {
 } from './dto/review-response.dto';
 
 @Controller('admin/reviews')
-// @UseGuards(AdminGuard) // Uncomment when you implement admin authentication
 export class AdminReviewsController {
   constructor(private readonly adminReviewsService: AdminReviewsService) {}
 

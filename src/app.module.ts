@@ -10,7 +10,6 @@ import { UsersModule } from './users/users.module';
 import { ReviewsModule } from './admin/reviews/reviews.module';
 import { CommonModule } from './common/common.module';
 import { AuthCoreModule } from './common/auth/auth.module';
-import { AuthModule } from './auth/auth.module';
 import { CalculatorProgressModule } from './calculator-progress/calculator-progress.module';
 import { UserDashboardModule } from './user-dashboard/user-dashboard.module';
 
@@ -21,7 +20,6 @@ import { UserDashboardModule } from './user-dashboard/user-dashboard.module';
     }),
     CommonModule,
     AuthCoreModule,
-    AuthModule,
     AdminModule,
     LiabilityClaimsModule,
     CustomerQueriesModule,

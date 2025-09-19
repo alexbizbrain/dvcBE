@@ -1,20 +1,31 @@
-import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, Min } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
-export class PageQueryDto {
-  @Type(() => Number)
+export class GetClaimsQueryDto {
+  @IsOptional()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value?.split(',')?.map(String),
+  )
+  @IsString({ each: true })
+  status?: string[]; // e.g. ?status=draft,completed
+
+  @IsOptional()
+  @IsString()
+  sortBy?: 'updatedAt' | 'createdAt' | 'lastAccessedAt' = 'updatedAt';
+
+  @IsOptional()
+  @IsString()
+  sortOrder?: 'asc' | 'desc' = 'desc';
+
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value, 10))
   @IsInt()
   @Min(1)
   page: number = 1;
 
-  @Type(() => Number)
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value, 10))
   @IsInt()
   @Min(1)
-  pageSize: number = 10;
-}
-
-export class ClaimsQueryDto extends PageQueryDto {
-  @IsOptional()
-  @IsIn(['IN_PROGRESS', 'COMPLETED'])
-  status?: 'IN_PROGRESS' | 'COMPLETED';
+  limit: number = 10;
 }

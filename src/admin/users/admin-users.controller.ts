@@ -10,7 +10,6 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import { AdminUsersService } from './admin-users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -23,7 +22,6 @@ import {
 import { BulkActionDto } from './dto/bulk-action.dto';
 
 @Controller('admin/users')
-// @UseGuards(AdminGuard) // Uncomment when you implement admin authentication
 export class AdminUsersController {
   constructor(private readonly adminUsersService: AdminUsersService) {}
 

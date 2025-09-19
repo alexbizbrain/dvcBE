@@ -7,7 +7,6 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
   Request,
   HttpStatus,
   HttpCode,
@@ -16,12 +15,9 @@ import {
 import { AdminUsersService } from './admin-users.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { JwtAuthGuard } from '../auth/admin-auth.guards';
-import { AdminGuard } from '../auth/admin.guard';
 import { AdminQueryDto } from './dto/admin-query.dto';
 
 @Controller('admin/admin-users')
-@UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminUsersController {
   constructor(private readonly adminUsersService: AdminUsersService) {}
 

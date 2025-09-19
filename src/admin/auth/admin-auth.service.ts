@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { User } from '@prisma/client';
 import { PrismaService } from '../../prisma.service';
+import { ConfigService } from '@nestjs/config';
 
 export interface AdminLoginResponse {
   success: boolean;
@@ -21,6 +22,7 @@ export class AdminAuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async validateAdmin(email: string, password: string): Promise<any> {
@@ -61,7 +63,12 @@ export class AdminAuthService {
 
     return {
       success: true,
-      accessToken: this.jwtService.sign(payload),
+      accessToken: this.jwtService.sign(payload, {
+        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+        expiresIn: '5h',
+        issuer: this.configService.getOrThrow<string>('JWT_ISS'),
+        audience: this.configService.getOrThrow<string>('JWT_AUD'),
+      }),
       admin: {
         id: user.id,
         email: user.email,
