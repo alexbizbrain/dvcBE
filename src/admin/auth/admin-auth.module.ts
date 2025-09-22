@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { PrismaService } from '../../prisma.service';
-import { AdminJwtStrategy } from './admin-jwt.strategy';
-import { AdminLocalStrategy } from './admin-local.strategy';
+import { AdminJwtStrategy } from 'src/common/auth/strategies/admin-jwt.strategy';
 import { AdminAuthController } from './admin-auth.controller';
+import { AdminAuthServiceCommon } from 'src/common/auth/admin-auth.service';
 import { AdminAuthService } from './admin-auth.service';
 
 @Module({
@@ -21,10 +21,10 @@ import { AdminAuthService } from './admin-auth.service';
   ],
   controllers: [AdminAuthController],
   providers: [
-    AdminAuthService,
-    AdminLocalStrategy,
+    AdminAuthServiceCommon,
     AdminJwtStrategy,
     PrismaService,
+    AdminAuthService,
   ],
   exports: [AdminAuthService],
 })

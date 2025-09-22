@@ -1,13 +1,13 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { AdminAuthService } from '../admin-auth.service';
+import { AdminAuthServiceCommon } from '../admin-auth.service';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AdminJwtStrategy extends PassportStrategy(Strategy, 'admin-jwt') {
   constructor(
-    private adminAuth: AdminAuthService,
+    private adminAuth: AdminAuthServiceCommon,
     configService: ConfigService,
   ) {
     super({
