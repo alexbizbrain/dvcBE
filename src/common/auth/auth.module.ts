@@ -3,7 +3,7 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { PassportModule } from '@nestjs/passport';
-import { AdminAuthService } from './admin-auth.service';
+import { AdminAuthServiceCommon } from './admin-auth.service';
 import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaService } from 'src/prisma.service';
@@ -23,7 +23,7 @@ import { PrismaService } from 'src/prisma.service';
       useClass: RolesGuard,
     },
     Reflector,
-    AdminAuthService,
+    AdminAuthServiceCommon,
     AdminJwtStrategy,
     PrismaService,
   ],

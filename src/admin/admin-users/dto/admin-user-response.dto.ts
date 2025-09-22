@@ -1,26 +1,27 @@
-export class AdminUserResponseDto {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber?: string;
-  countryCode?: string;
-  isEmailVerified: boolean;
-  isPhoneVerified: boolean;
-  isActive: boolean;
-  lastLoginAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  role: {
-    id: string;
-    name: string;
-  };
+export class RoleLiteDto {
+  id!: string;
+  name!: string;
 }
 
-export interface PaginatedAdminUsersResponseDto {
-  users: AdminUserResponseDto[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+export class AdminUserResponseDto {
+  id!: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  isActive!: boolean;
+  isEmailVerified!: boolean;
+  isPhoneVerified!: boolean;
+  isBusinessUser!: boolean;
+  createdAt!: Date;
+  updatedAt!: Date;
+  role!: RoleLiteDto;
+}
+
+export class PaginatedAdminUsersResponseDto {
+  users!: AdminUserResponseDto[];
+  total!: number;
+  page!: number;
+  limit!: number;
+  totalPages!: number;
 }

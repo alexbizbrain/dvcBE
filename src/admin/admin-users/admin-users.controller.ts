@@ -11,20 +11,24 @@ import {
   HttpStatus,
   HttpCode,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { AdminUsersService } from './admin-users.service';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AdminQueryDto } from './dto/admin-query.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 
+@UseGuards(AuthGuard('admin-jwt'))
 @Controller('admin/admin-users')
 export class AdminUsersController {
   constructor(private readonly adminUsersService: AdminUsersService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createAdminUserDto: CreateAdminUserDto) {
-    const user = await this.adminUsersService.create(createAdminUserDto);
+  async create(@Body() dto: CreateAdminUserDto) {
+    const user = await this.adminUsersService.create(dto);
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Admin user created successfully',
@@ -38,14 +42,14 @@ export class AdminUsersController {
     return {
       success: true,
       message: 'Admin users retrieved successfully',
-      data: {
-        users: result.users,
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: result.totalPages,
-      },
+      data: result,
     };
+  }
+
+  @Get('count')
+  async count() {
+    const data = await this.adminUsersService.countAdmins();
+    return { success: true, data };
   }
 
   @Get(':id')
@@ -58,28 +62,29 @@ export class AdminUsersController {
     };
   }
 
-  @Delete(':id')
-  @HttpCode(HttpStatus.OK)
-  async remove(@Param('id') id: string, @Request() req: any) {
-    const result = await this.adminUsersService.remove(id, req.user.id);
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() dto: UpdateAdminUserDto) {
+    const user = await this.adminUsersService.update(id, dto);
     return {
       statusCode: HttpStatus.OK,
-      message: result.message,
+      message: 'Admin user updated successfully',
+      data: user,
     };
   }
 
   @Patch(':id/change-password')
   async changePassword(
     @Param('id') id: string,
-    @Body() changePasswordDto: ChangePasswordDto,
+    @Body() dto: ChangePasswordDto,
   ) {
-    const result = await this.adminUsersService.changePassword(
-      id,
-      changePasswordDto,
-    );
-    return {
-      statusCode: HttpStatus.OK,
-      message: result.message,
-    };
+    const result = await this.adminUsersService.changePassword(id, dto);
+    return { statusCode: HttpStatus.OK, message: result.message };
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async remove(@Param('id') id: string, @Request() req: any) {
+    const result = await this.adminUsersService.remove(id, req.user.id);
+    return { statusCode: HttpStatus.OK, message: result.message };
   }
 }

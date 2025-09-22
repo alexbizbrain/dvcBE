@@ -1,9 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
 import { User } from '@prisma/client';
 import { PrismaService } from '../../prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { AdminAuthServiceCommon } from 'src/common/auth/admin-auth.service';
 
 export interface AdminLoginResponse {
   success: boolean;
@@ -23,42 +23,28 @@ export class AdminAuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private readonly authService: AdminAuthServiceCommon,
   ) {}
 
-  async validateAdmin(email: string, password: string): Promise<any> {
+  async login(email: string): Promise<AdminLoginResponse> {
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: { role: true },
     });
 
-    if (!user || !user.password || user.role.name !== 'ADMIN') {
+    if (!user || !user.email) {
       throw new UnauthorizedException('Invalid admin credentials');
     }
 
-    if (!user.isActive) {
-      throw new UnauthorizedException('Admin account is inactive');
-    }
+    const ValidateUser = await this.authService.validateAdminById(user.id);
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
+    if (!ValidateUser) {
       throw new UnauthorizedException('Invalid admin credentials');
     }
 
-    // Update last login
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
-
-    const { password: _, ...result } = user;
-    return result;
-  }
-
-  async login(user: any): Promise<AdminLoginResponse> {
     const payload = {
-      email: user.email,
-      sub: user.id,
-      role: user.role.name,
+      sub: ValidateUser.id,
+      role: ValidateUser.role,
     };
 
     return {
@@ -70,7 +56,7 @@ export class AdminAuthService {
         audience: this.configService.getOrThrow<string>('JWT_AUD'),
       }),
       admin: {
-        id: user.id,
+        id: ValidateUser.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,

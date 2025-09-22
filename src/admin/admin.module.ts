@@ -8,6 +8,7 @@ import { AdminCrudModule } from './admin-users/admin-users.module';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { PrismaService } from 'src/prisma.service';
+import { HealthService } from './health.service';
 
 @Module({
   controllers: [AdminController],
@@ -19,7 +20,7 @@ import { PrismaService } from 'src/prisma.service';
     AdminUsersModule,
     AdminCrudModule,
   ],
-  providers: [AdminService, PrismaService],
+  providers: [AdminService, PrismaService, HealthService],
   exports: [AdminService],
 })
 export class AdminModule {}

@@ -3,7 +3,6 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
-  BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
@@ -15,192 +14,222 @@ import {
 } from './dto/admin-user-response.dto';
 import * as bcrypt from 'bcryptjs';
 import { AdminQueryDto } from './dto/admin-query.dto';
+import { Prisma } from '@prisma/client';
+import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 
 @Injectable()
 export class AdminUsersService {
+  private adminRoleIdCache?: string;
   constructor(private prisma: PrismaService) {}
 
-  async create(
-    createAdminUserDto: CreateAdminUserDto,
-  ): Promise<AdminUserResponseDto> {
-    const { email, phoneNumber, password, ...userData } = createAdminUserDto;
-
-    // Check if email already exists
-    if (email) {
-      const existingUserByEmail = await this.prisma.user.findUnique({
-        where: { email },
-      });
-      if (existingUserByEmail) {
-        throw new ConflictException('Email already exists');
-      }
-    }
-
-    // Check if phone number already exists
-    if (phoneNumber) {
-      const existingUserByPhone = await this.prisma.user.findUnique({
-        where: { phoneNumber },
-      });
-      if (existingUserByPhone) {
-        throw new ConflictException('Phone number already exists');
-      }
-    }
-
-    // Get admin role
-    const adminRole = await this.prisma.role.findUnique({
+  private async getAdminRoleId(): Promise<string> {
+    if (this.adminRoleIdCache) return this.adminRoleIdCache;
+    const role = await this.prisma.role.findUnique({
       where: { name: 'ADMIN' },
     });
+    if (!role) throw new NotFoundException('Admin role not found');
+    this.adminRoleIdCache = role.id;
+    return role.id;
+  }
 
-    if (!adminRole) {
-      throw new NotFoundException('Admin role not found');
+  private uniqueGuard(e: any) {
+    if (e?.code === 'P2002') {
+      const target = (e as Prisma.PrismaClientKnownRequestError).meta
+        ?.target as string[] | undefined;
+      if (target?.includes('email'))
+        throw new ConflictException('Email already exists');
+      if (target?.includes('phoneNumber'))
+        throw new ConflictException('Phone number already exists');
+      throw new ConflictException('Unique constraint failed');
     }
+    throw e;
+  }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+  private selectUser() {
+    return {
+      id: true,
+      email: true,
+      phoneNumber: true,
+      firstName: true,
+      lastName: true,
+      isActive: true,
+      isEmailVerified: true,
+      isPhoneVerified: true,
+      isBusinessUser: true,
+      createdAt: true,
+      updatedAt: true,
+      role: { select: { id: true, name: true } },
+    } as const;
+  }
 
-    // Create user
-    const user = await this.prisma.user.create({
-      data: {
-        ...userData,
-        email,
-        phoneNumber,
-        password: hashedPassword,
-        roleId: adminRole.id,
-        isEmailVerified: true, // Auto-verify admin users
-      },
-      include: {
-        role: {
-          select: {
-            id: true,
-            name: true,
-          },
+  private toResponse(user: any): AdminUserResponseDto {
+    return user; // already selected without password
+  }
+
+  async create(dto: CreateAdminUserDto): Promise<AdminUserResponseDto> {
+    const adminRoleId = await this.getAdminRoleId();
+    const hash = await bcrypt.hash(dto.password, 10);
+
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          phoneNumber: dto.phoneNumber,
+          password: hash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          isEmailVerified: true,
+          isActive: true,
+          roleId: adminRoleId,
         },
-      },
-    });
-
-    return this.formatUserResponse(user);
+        select: this.selectUser(),
+      });
+      return this.toResponse(user);
+    } catch (error) {
+      this.uniqueGuard(error);
+      throw error;
+    }
   }
 
   async findAll(query: AdminQueryDto): Promise<PaginatedAdminUsersResponseDto> {
-    const { page = 1, limit = 10, search } = query;
+    const adminRoleId = await this.getAdminRoleId();
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
 
-    // Build where clause for admin users
-    const where: any = {
-      role: {
-        name: 'ADMIN',
-      },
-      isActive: true,
+    const where: Prisma.UserWhereInput = {
+      roleId: adminRoleId,
+      ...(query.isActive !== undefined
+        ? { isActive: query.isActive === 'true' }
+        : {}),
+      ...(query.search
+        ? {
+            OR: [
+              { firstName: { contains: query.search, mode: 'insensitive' } },
+              { lastName: { contains: query.search, mode: 'insensitive' } },
+              { email: { contains: query.search, mode: 'insensitive' } },
+              { phoneNumber: { contains: query.search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+      ...(query.dateFrom || query.dateTo
+        ? {
+            createdAt: {
+              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+              ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+            },
+          }
+        : {}),
     };
-
-    if (search) {
-      where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { phoneNumber: { contains: search, mode: 'insensitive' } },
-      ];
-    }
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
         skip,
         take: limit,
-        include: {
-          role: {
-            select: { id: true, name: true },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'desc' }, // explicit
+        select: this.selectUser(),
       }),
       this.prisma.user.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
-
     return {
-      users: users.map((user) => this.formatUserResponse(user)),
+      users: users.map((u) => this.toResponse(u)),
       total,
       page,
       limit,
-      totalPages,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
     };
   }
 
   async findOne(id: string): Promise<AdminUserResponseDto> {
+    const adminRoleId = await this.getAdminRoleId();
     const user = await this.prisma.user.findFirst({
-      where: {
-        id,
-        role: {
-          name: 'ADMIN',
-        },
-      },
-      include: {
-        role: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      where: { id, roleId: adminRoleId },
+      select: this.selectUser(),
     });
+    if (!user) throw new NotFoundException('Admin user not found');
+    return this.toResponse(user);
+  }
 
-    if (!user) {
-      throw new NotFoundException('Admin user not found');
+  async update(
+    id: string,
+    dto: UpdateAdminUserDto,
+  ): Promise<AdminUserResponseDto> {
+    // guard: must be admin user
+    await this.findOne(id);
+
+    try {
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: {
+          email: dto.email ?? undefined,
+          phoneNumber: dto.phoneNumber ?? undefined,
+          firstName: dto.firstName ?? undefined,
+          lastName: dto.lastName ?? undefined,
+          isActive: dto.isActive ?? undefined,
+          isEmailVerified: dto.isEmailVerified ?? undefined,
+          isPhoneVerified: dto.isPhoneVerified ?? undefined,
+          isBusinessUser: dto.isBusinessUser ?? undefined,
+        },
+        select: this.selectUser(),
+      });
+      return this.toResponse(user);
+    } catch (e) {
+      this.uniqueGuard(e);
+      throw e;
     }
-
-    return this.formatUserResponse(user);
   }
 
   async remove(
     id: string,
     currentUserId: string,
   ): Promise<{ message: string }> {
-    // Check if user exists and is admin
     const user = await this.findOne(id);
-
-    // Prevent user from deleting themselves
     if (id === currentUserId) {
       throw new ForbiddenException('You cannot delete your own account');
     }
-
-    // Protected emails that cannot be deleted
     const protectedEmails = ['admin@dvcc.com', 'abdulwajid2818@gmail.com'];
-
     if (user.email && protectedEmails.includes(user.email.toLowerCase())) {
       throw new ForbiddenException(
         'This admin account is protected and cannot be deleted',
       );
     }
-
-    // Soft delete: set isActive to false
     await this.prisma.user.update({
       where: { id },
       data: { isActive: false },
+      select: { id: true },
     });
-
     return { message: 'Admin user deactivated successfully' };
   }
 
   async changePassword(
     id: string,
-    changePasswordDto: ChangePasswordDto,
+    dto: ChangePasswordDto,
   ): Promise<{ message: string }> {
-    // Check if user exists and is admin
     await this.findOne(id);
-
-    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
-
+    const hash = await bcrypt.hash(dto.newPassword, 10);
     await this.prisma.user.update({
       where: { id },
-      data: { password: hashedPassword },
+      data: { password: hash },
+      select: { id: true }, // minimal write select
     });
-
     return { message: 'Password changed successfully' };
   }
 
-  private formatUserResponse(user: any): AdminUserResponseDto {
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+  async countAdmins(): Promise<{
+    total: number;
+    active: number;
+    inactive: number;
+  }> {
+    const adminRoleId = await this.getAdminRoleId();
+    const [total, active] = await Promise.all([
+      this.prisma.user.count({ where: { roleId: adminRoleId } }),
+      this.prisma.user.count({
+        where: { roleId: adminRoleId, isActive: true },
+      }),
+    ]);
+    return { total, active, inactive: total - active };
   }
 }
