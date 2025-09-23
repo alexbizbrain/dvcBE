@@ -3,7 +3,6 @@ import { RoleSeeder } from './seeders/role.seeder';
 import { AdminSeeder } from './seeders/admin.seeder';
 import { ReviewSeeder } from './seeders/review.seeder';
 import { CustomerQuerySeeder } from './seeders/customer-query.seeder';
-import { LiabilityClaimSeeder } from './seeders/liability-claim.seeder';
 
 async function main() {
   const prisma = new PrismaClient();
@@ -16,7 +15,6 @@ async function main() {
       new AdminSeeder(),
       new ReviewSeeder(),
       new CustomerQuerySeeder(),
-      new LiabilityClaimSeeder(),
       // Add more seeders here
     ];
 
