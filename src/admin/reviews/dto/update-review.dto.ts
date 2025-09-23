@@ -1,22 +1,13 @@
-import {
-  IsString,
-  IsInt,
-  IsOptional,
-  Min,
-  Max,
-  MaxLength,
-} from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
-export class ReviewDto {
+export class UpdateReviewDto {
   @IsOptional()
   @IsString()
-  @MaxLength(100)
   customerName?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(10)
-  customerInitials?: string;
+  customerInitials?: string | null;
 
   @IsOptional()
   @IsInt()
@@ -26,16 +17,13 @@ export class ReviewDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000)
   reviewText?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(50)
   source?: string;
 
   @IsOptional()
   @IsInt()
-  @Min(0)
-  displayOrder?: number;
+  displayOrder?: number | null;
 }

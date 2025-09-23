@@ -1,233 +1,157 @@
 // src/admin/reviews/admin-reviews.service.ts
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
-// import { PrismaService } from '../../prisma/prisma.service';
-import { ReviewDto } from './dto/review.dto';
-import { ReviewQueryDto } from './dto/review-query.dto';
-import {
-  ReviewResponseDto,
-  PaginatedReviewsResponseDto,
-} from './dto/review-response.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+
 import { PrismaService } from 'src/prisma.service';
+import {
+  PaginatedReviewsDto,
+  ReviewItemDto,
+  ReviewMetricsDto,
+} from './dto/review-response.dto';
+import { Prisma } from '@prisma/client';
+import { ReviewQueryDto } from './dto/review-query.dto';
+import { UpdateReviewDto } from './dto/update-review.dto';
 
 @Injectable()
 export class AdminReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createReview(reviewDto: ReviewDto): Promise<ReviewResponseDto> {
-    try {
-      // Validate required fields for creation
-      if (!reviewDto.customerName) {
-        throw new BadRequestException('Customer name is required');
-      }
-      if (!reviewDto.rating) {
-        throw new BadRequestException('Rating is required');
-      }
-      if (!reviewDto.reviewText) {
-        throw new BadRequestException('Review text is required');
-      }
-
-      // Generate initials if not provided
-      if (!reviewDto.customerInitials) {
-        reviewDto.customerInitials = this.generateInitials(
-          reviewDto.customerName,
-        );
-      }
-
-      const review = await this.prisma.review.create({
-        data: {
-          customerName: reviewDto.customerName,
-          customerInitials: reviewDto.customerInitials,
-          rating: reviewDto.rating,
-          reviewText: reviewDto.reviewText,
-          source: reviewDto.source || 'Website',
-          displayOrder: reviewDto.displayOrder,
-        },
-      });
-
-      return this.mapToResponseDto(review);
-    } catch (error) {
-      throw new BadRequestException('Failed to create review');
-    }
+  private select() {
+    return {
+      id: true,
+      customerName: true,
+      customerInitials: true,
+      rating: true,
+      reviewText: true,
+      source: true,
+      displayOrder: true,
+      createdAt: true,
+      updatedAt: true,
+    } as const;
   }
 
-  async findAllReviews(
-    query: ReviewQueryDto,
-  ): Promise<PaginatedReviewsResponseDto> {
-    const { page = 1, limit = 10, search, source, rating } = query;
+  private toItem(r: any): ReviewItemDto {
+    return r;
+  }
+
+  async metrics(): Promise<ReviewMetricsDto> {
+    const [agg, fiveStarCount, topSourceRow] = await Promise.all([
+      this.prisma.review.aggregate({
+        _count: { _all: true },
+        _avg: { rating: true },
+      }),
+      this.prisma.review.count({ where: { rating: 5 } }),
+      this.prisma.review
+        .groupBy({
+          by: ['source'],
+          _count: { source: true },
+          orderBy: { _count: { source: 'desc' } },
+          take: 1,
+        })
+        .catch(() => []),
+    ]);
+
+    return {
+      totalReviews: agg._count._all ?? 0,
+      averageRating: Number((agg._avg.rating ?? 0).toFixed(2)),
+      fiveStarCount,
+      topSource: topSourceRow[0]?.source ?? null,
+    };
+  }
+
+  async findAll(query: ReviewQueryDto): Promise<PaginatedReviewsDto> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
 
-    // Build where clause for filtering
-    const where: any = {};
+    const where: Prisma.ReviewWhereInput = {
+      ...(query.q
+        ? {
+            OR: [
+              { customerName: { contains: query.q, mode: 'insensitive' } },
+              { reviewText: { contains: query.q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+      ...(query.source ? { source: { equals: query.source } } : {}),
+      ...(query.minRating || query.maxRating
+        ? {
+            rating: {
+              ...(query.minRating ? { gte: query.minRating } : {}),
+              ...(query.maxRating ? { lte: query.maxRating } : {}),
+            },
+          }
+        : {}),
+      ...(query.dateFrom || query.dateTo
+        ? {
+            createdAt: {
+              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+              ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+            },
+          }
+        : {}),
+    };
 
-    if (search) {
-      where.OR = [
-        { customerName: { contains: search, mode: 'insensitive' } },
-        { reviewText: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    if (source) {
-      where.source = { contains: source, mode: 'insensitive' };
-    }
-
-    if (rating) {
-      where.rating = rating;
-    }
-
-    const [reviews, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.review.findMany({
         where,
         skip,
         take: limit,
-        orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+        orderBy: [
+          // show curated items first if you use displayOrder; then newest
+          { displayOrder: 'asc' },
+          { createdAt: 'desc' },
+        ],
+        select: this.select(),
       }),
       this.prisma.review.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
-
     return {
-      reviews: reviews.map((review) => this.mapToResponseDto(review)),
+      items: rows.map((r) => this.toItem(r)),
       total,
       page,
       limit,
-      totalPages,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
     };
   }
 
-  async findOneReview(id: string): Promise<ReviewResponseDto> {
-    const review = await this.prisma.review.findUnique({
+  async findOne(id: string): Promise<ReviewItemDto> {
+    const r = await this.prisma.review.findUnique({
       where: { id },
+      select: this.select(),
     });
-
-    if (!review) {
-      throw new NotFoundException('Review not found');
-    }
-
-    return this.mapToResponseDto(review);
+    if (!r) throw new NotFoundException('Review not found');
+    return this.toItem(r);
   }
 
-  async updateReview(
-    id: string,
-    reviewDto: ReviewDto,
-  ): Promise<ReviewResponseDto> {
-    const existingReview = await this.prisma.review.findUnique({
+  async update(id: string, dto: UpdateReviewDto): Promise<ReviewItemDto> {
+    await this.ensureExists(id);
+    const r = await this.prisma.review.update({
       where: { id },
+      data: {
+        customerName: dto.customerName ?? undefined,
+        customerInitials: dto.customerInitials ?? undefined,
+        rating: dto.rating ?? undefined,
+        reviewText: dto.reviewText ?? undefined,
+        source: dto.source ?? undefined,
+        displayOrder: dto.displayOrder ?? undefined,
+      },
+      select: this.select(),
     });
-
-    if (!existingReview) {
-      throw new NotFoundException('Review not found');
-    }
-
-    try {
-      // Generate initials if customerName is being updated and initials not provided
-      if (reviewDto.customerName && !reviewDto.customerInitials) {
-        reviewDto.customerInitials = this.generateInitials(
-          reviewDto.customerName,
-        );
-      }
-
-      // Build update data, filtering out undefined values
-      const updateData: any = {};
-      if (reviewDto.customerName !== undefined)
-        updateData.customerName = reviewDto.customerName;
-      if (reviewDto.customerInitials !== undefined)
-        updateData.customerInitials = reviewDto.customerInitials;
-      if (reviewDto.rating !== undefined) updateData.rating = reviewDto.rating;
-      if (reviewDto.reviewText !== undefined)
-        updateData.reviewText = reviewDto.reviewText;
-      if (reviewDto.source !== undefined) updateData.source = reviewDto.source;
-      if (reviewDto.displayOrder !== undefined)
-        updateData.displayOrder = reviewDto.displayOrder;
-
-      const updatedReview = await this.prisma.review.update({
-        where: { id },
-        data: updateData,
-      });
-
-      return this.mapToResponseDto(updatedReview);
-    } catch (error) {
-      throw new BadRequestException('Failed to update review');
-    }
+    return this.toItem(r);
   }
 
-  async deleteReview(id: string): Promise<void> {
-    const existingReview = await this.prisma.review.findUnique({
+  async remove(id: string): Promise<{ message: string }> {
+    await this.ensureExists(id);
+    await this.prisma.review.delete({ where: { id } });
+    return { message: 'Review deleted successfully' };
+  }
+
+  private async ensureExists(id: string) {
+    const exists = await this.prisma.review.findUnique({
       where: { id },
+      select: { id: true },
     });
-
-    if (!existingReview) {
-      throw new NotFoundException('Review not found');
-    }
-
-    await this.prisma.review.delete({
-      where: { id },
-    });
-  }
-
-  async getReviewStats(): Promise<{
-    total: number;
-    averageRating: number;
-    ratingDistribution: { rating: number; count: number }[];
-    sourceDistribution: { source: string; count: number }[];
-  }> {
-    const [total, ratings, sources] = await Promise.all([
-      this.prisma.review.count(),
-      this.prisma.review.findMany({
-        select: { rating: true },
-      }),
-      this.prisma.review.groupBy({
-        by: ['source'],
-        _count: { source: true },
-      }),
-    ]);
-
-    const averageRating =
-      ratings.length > 0
-        ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
-        : 0;
-
-    const ratingDistribution = [1, 2, 3, 4, 5].map((rating) => ({
-      rating,
-      count: ratings.filter((r) => r.rating === rating).length,
-    }));
-
-    const sourceDistribution = sources.map((s) => ({
-      source: s.source,
-      count: s._count.source,
-    }));
-
-    return {
-      total,
-      averageRating: Math.round(averageRating * 10) / 10,
-      ratingDistribution,
-      sourceDistribution,
-    };
-  }
-
-  private generateInitials(name: string): string {
-    return name
-      .split(' ')
-      .map((word) => word.charAt(0).toUpperCase())
-      .slice(0, 2)
-      .join('');
-  }
-
-  private mapToResponseDto(review: any): ReviewResponseDto {
-    return {
-      id: review.id,
-      customerName: review.customerName,
-      customerInitials: review.customerInitials,
-      rating: review.rating,
-      reviewText: review.reviewText,
-      source: review.source,
-      displayOrder: review.displayOrder,
-      createdAt: review.createdAt,
-      updatedAt: review.updatedAt,
-    };
+    if (!exists) throw new NotFoundException('Review not found');
   }
 }

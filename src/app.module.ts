@@ -7,7 +7,6 @@ import { LiabilityClaimsModule } from './liability-claims/liability-claims.modul
 import { CustomerQueriesModule } from './customer-queries/customer-queries.module';
 import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
-import { ReviewsModule } from './admin/reviews/reviews.module';
 import { CommonModule } from './common/common.module';
 import { AuthCoreModule } from './common/auth/auth.module';
 import { CalculatorProgressModule } from './calculator-progress/calculator-progress.module';
@@ -25,7 +24,6 @@ import { AdminAuthModule } from './admin/auth/admin-auth.module';
     LiabilityClaimsModule,
     CustomerQueriesModule,
     UsersModule,
-    ReviewsModule,
     CalculatorProgressModule,
     UserDashboardModule,
     AdminAuthModule,

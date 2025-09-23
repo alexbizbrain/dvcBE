@@ -1,13 +1,14 @@
-import {
-  Injectable,
-  NotFoundException,
-  InternalServerErrorException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
-import { QueryLiabilityClaimsDto } from './dto/query-liability-claims.dto';
-import { UpdateLiabilityClaimDto } from './dto/update-liability-claim.dto';
+import {
+  LiabilityClaimCountsDto,
+  LiabilityClaimResponseDto,
+  PaginatedLiabilityClaimsResponseDto,
+} from './dto/liability-claim-response.dto';
+import { LiabilityClaimQueryDto } from './dto/liability-claim-query.dto';
 import { Prisma } from '@prisma/client';
+import { CreateLiabilityClaimDto } from './dto/create-liability-claim-admin.dto';
+import { UpdateLiabilityClaimDto } from './dto/update-liability-claim.dto';
 
 export interface PaginatedLiabilityClaims {
   success: boolean;
@@ -26,225 +27,168 @@ export interface PaginatedLiabilityClaims {
 export class AdminLiabilityClaimsService {
   constructor(private prisma: PrismaService) {}
 
+  private selectClaim() {
+    return {
+      id: true,
+      email: true,
+      phoneNumber: true,
+      countryCode: true,
+      atFaultDriver: true,
+      state: true,
+      hitAndRun: true,
+      agreeToEmails: true,
+      agreeToSms: true,
+      createdAt: true,
+      updatedAt: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+          phoneNumber: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+    } as const;
+  }
+
+  private toResponse(c: any): LiabilityClaimResponseDto {
+    return c;
+  }
+
   async findAll(
-    queryDto: QueryLiabilityClaimsDto,
-  ): Promise<PaginatedLiabilityClaims> {
-    try {
-      const {
-        page = 1,
-        limit = 10,
-        search,
-        email,
-        state,
-        countryCode,
-        atFaultDriver,
-      } = queryDto;
-      const skip = (page - 1) * limit;
+    query: LiabilityClaimQueryDto,
+  ): Promise<PaginatedLiabilityClaimsResponseDto> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
 
-      // Build where clause for search functionality
-      const whereClause: Prisma.LiabilityClaimWhereInput = {};
-
-      if (search) {
-        whereClause.OR = [
-          {
-            email: {
-              contains: search,
-              mode: 'insensitive',
+    const where: Prisma.LiabilityClaimWhereInput = {
+      ...(query.q
+        ? {
+            OR: [
+              { email: { contains: query.q, mode: 'insensitive' } },
+              { phoneNumber: { contains: query.q, mode: 'insensitive' } },
+              { state: { contains: query.q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+      ...(query.state ? { state: { equals: query.state } } : {}),
+      ...(query.atFaultDriver !== undefined
+        ? { atFaultDriver: query.atFaultDriver === 'true' }
+        : {}),
+      ...(query.hitAndRun !== undefined
+        ? { hitAndRun: query.hitAndRun === 'true' }
+        : {}),
+      ...(query.dateFrom || query.dateTo
+        ? {
+            createdAt: {
+              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+              ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
             },
-          },
-          {
-            phoneNumber: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
-          {
-            state: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
-        ];
-      }
+          }
+        : {}),
+    };
 
-      if (email) {
-        whereClause.email = {
-          contains: email,
-          mode: 'insensitive',
-        };
-      }
-
-      if (state) {
-        whereClause.state = {
-          contains: state,
-          mode: 'insensitive',
-        };
-      }
-
-      if (countryCode) {
-        whereClause.countryCode = countryCode;
-      }
-
-      if (atFaultDriver !== undefined) {
-        whereClause.atFaultDriver = atFaultDriver;
-      }
-
-      // Get total count for pagination
-      const total = await this.prisma.liabilityClaim.count({
-        where: whereClause,
-      });
-
-      // Get paginated results
-      const claims = await this.prisma.liabilityClaim.findMany({
-        where: whereClause,
+    const [items, total] = await Promise.all([
+      this.prisma.liabilityClaim.findMany({
+        where,
         skip,
         take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        select: {
-          id: true,
-          email: true,
-          phoneNumber: true,
-          countryCode: true,
-          atFaultDriver: true,
-          state: true,
-          agreeToEmails: true,
-          agreeToSms: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+        orderBy: { createdAt: 'desc' },
+        select: this.selectClaim(),
+      }),
+      this.prisma.liabilityClaim.count({ where }),
+    ]);
 
-      const totalPages = Math.ceil(total / limit);
-
-      return {
-        success: true,
-        data: claims,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1,
-        },
-      };
-    } catch {
-      throw new InternalServerErrorException(
-        'Failed to retrieve liability claims',
-      );
-    }
+    return {
+      items: items.map((c) => this.toResponse(c)),
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
   }
 
-  async findOne(id: string) {
-    try {
-      const claim = await this.prisma.liabilityClaim.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          email: true,
-          phoneNumber: true,
-          countryCode: true,
-          atFaultDriver: true,
-          state: true,
-          agreeToEmails: true,
-          agreeToSms: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+  async counts(): Promise<LiabilityClaimCountsDto> {
+    const [totalClaims, atFaultDrivers, emailSubscribers, smsSubscribers] =
+      await Promise.all([
+        this.prisma.liabilityClaim.count(),
+        this.prisma.liabilityClaim.count({ where: { atFaultDriver: true } }),
+        this.prisma.liabilityClaim.count({ where: { agreeToEmails: true } }),
+        this.prisma.liabilityClaim.count({ where: { agreeToSms: true } }),
+      ]);
 
-      if (!claim) {
-        throw new NotFoundException('Liability claim not found');
-      }
-
-      return {
-        success: true,
-        data: claim,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        'Failed to retrieve liability claim',
-      );
-    }
+    return { totalClaims, atFaultDrivers, emailSubscribers, smsSubscribers };
   }
 
-  async update(id: string, updateDto: UpdateLiabilityClaimDto) {
-    try {
-      const existingClaim = await this.prisma.liabilityClaim.findUnique({
-        where: { id },
-      });
-
-      if (!existingClaim) {
-        throw new NotFoundException('Liability claim not found');
-      }
-
-      // Validate that either email or phone is provided after update
-      const updatedEmail =
-        updateDto.email !== undefined ? updateDto.email : existingClaim.email;
-      const updatedPhone =
-        updateDto.phoneNumber !== undefined
-          ? updateDto.phoneNumber
-          : existingClaim.phoneNumber;
-
-      if (!updatedEmail && !updatedPhone) {
-        throw new BadRequestException(
-          'Either email or phone number is required',
-        );
-      }
-
-      const updatedClaim = await this.prisma.liabilityClaim.update({
-        where: { id },
-        data: updateDto,
-      });
-
-      return {
-        success: true,
-        message: 'Liability claim updated successfully',
-        data: updatedClaim,
-      };
-    } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        'Failed to update liability claim',
-      );
-    }
+  async findOne(id: string): Promise<LiabilityClaimResponseDto> {
+    const claim = await this.prisma.liabilityClaim.findUnique({
+      where: { id },
+      select: this.selectClaim(),
+    });
+    if (!claim) throw new NotFoundException('Liability claim not found');
+    return this.toResponse(claim);
   }
 
-  async remove(id: string) {
-    try {
-      const claim = await this.prisma.liabilityClaim.findUnique({
-        where: { id },
-      });
+  async create(
+    dto: CreateLiabilityClaimDto,
+  ): Promise<LiabilityClaimResponseDto> {
+    const claim = await this.prisma.liabilityClaim.create({
+      data: {
+        email: dto.email?.trim(),
+        phoneNumber: dto.phoneNumber,
+        countryCode: dto.countryCode ?? 'us',
+        atFaultDriver: dto.atFaultDriver,
+        state: dto.state,
+        hitAndRun: dto.hitAndRun ?? false,
+        agreeToEmails: dto.agreeToEmails ?? false,
+        agreeToSms: dto.agreeToSms ?? false,
+        userId: dto.userId ?? null,
+      },
+      select: this.selectClaim(),
+    });
+    return this.toResponse(claim);
+  }
 
-      if (!claim) {
-        throw new NotFoundException('Liability claim not found');
-      }
+  async update(
+    id: string,
+    dto: UpdateLiabilityClaimDto,
+  ): Promise<LiabilityClaimResponseDto> {
+    // ensure exists
+    await this.ensureExists(id);
 
-      await this.prisma.liabilityClaim.delete({
-        where: { id },
-      });
+    const claim = await this.prisma.liabilityClaim.update({
+      where: { id },
+      data: {
+        email: dto.email?.trim(),
+        phoneNumber: dto.phoneNumber,
+        countryCode: dto.countryCode,
+        atFaultDriver: dto.atFaultDriver,
+        state: dto.state,
+        hitAndRun: dto.hitAndRun,
+        agreeToEmails: dto.agreeToEmails,
+        agreeToSms: dto.agreeToSms,
+        // link/unlink
+        userId: dto.userId === null ? null : (dto.userId ?? undefined),
+      },
+      select: this.selectClaim(),
+    });
+    return this.toResponse(claim);
+  }
 
-      return {
-        success: true,
-        message: 'Liability claim deleted successfully',
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        'Failed to delete liability claim',
-      );
-    }
+  async remove(id: string): Promise<{ message: string }> {
+    // hard delete (no soft flags in schema)
+    await this.ensureExists(id);
+    await this.prisma.liabilityClaim.delete({ where: { id } });
+    return { message: 'Liability claim deleted successfully' };
+  }
+
+  private async ensureExists(id: string) {
+    const exists = await this.prisma.liabilityClaim.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!exists) throw new NotFoundException('Liability claim not found');
   }
 }

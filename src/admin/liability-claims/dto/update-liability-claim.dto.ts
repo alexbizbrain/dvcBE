@@ -1,8 +1,8 @@
-import { IsString, IsBoolean, IsOptional, IsIn } from 'class-validator';
+import { IsBoolean, IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class UpdateLiabilityClaimDto {
   @IsOptional()
-  @IsString()
+  @IsEmail()
   email?: string;
 
   @IsOptional()
@@ -11,7 +11,6 @@ export class UpdateLiabilityClaimDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['us'])
   countryCode?: string;
 
   @IsOptional()
@@ -33,4 +32,8 @@ export class UpdateLiabilityClaimDto {
   @IsOptional()
   @IsBoolean()
   agreeToSms?: boolean;
+
+  @IsOptional()
+  @IsString()
+  userId?: string | null; // allow unlink by passing null
 }

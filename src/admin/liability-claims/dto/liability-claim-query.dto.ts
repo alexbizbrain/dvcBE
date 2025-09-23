@@ -1,4 +1,3 @@
-// src/admin/reviews/dto/review-query.dto.ts
 import { Transform } from 'class-transformer';
 import {
   IsInt,
@@ -7,9 +6,10 @@ import {
   Min,
   Max,
   IsISO8601,
+  IsBooleanString,
 } from 'class-validator';
 
-export class ReviewQueryDto {
+export class LiabilityClaimQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -23,33 +23,26 @@ export class ReviewQueryDto {
   @Transform(({ value }) => Number(value))
   limit?: number = 10;
 
-  /** search by customerName or reviewText */
+  /** search by email, state, or phone */
   @IsOptional()
   @IsString()
   q?: string;
 
-  /** filter by exact source, e.g. "Trustpilot" */
+  /** exact state filter */
   @IsOptional()
   @IsString()
-  source?: string;
+  state?: string;
 
-  /** rating >= minRating */
+  /** "true" | "false" */
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(5)
-  @Transform(({ value }) => Number(value))
-  minRating?: number;
+  @IsBooleanString()
+  atFaultDriver?: string;
 
-  /** rating <= maxRating */
+  /** "true" | "false" */
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(5)
-  @Transform(({ value }) => Number(value))
-  maxRating?: number;
+  @IsBooleanString()
+  hitAndRun?: string;
 
-  /** optional date window */
   @IsOptional()
   @IsISO8601()
   dateFrom?: string;

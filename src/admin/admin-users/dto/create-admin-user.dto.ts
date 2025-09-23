@@ -3,8 +3,31 @@ import {
   IsString,
   MinLength,
   IsOptional,
-  ValidateIf,
+  registerDecorator,
+  ValidationOptions,
+  ValidationArguments,
 } from 'class-validator';
+
+// Custom validator decorator
+function IsEmailOrPhoneRequired(validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'isEmailOrPhoneRequired',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          const obj = args.object as any;
+          return !!(obj.email || obj.phoneNumber);
+        },
+        defaultMessage() {
+          return 'Either email or phoneNumber is required';
+        },
+      },
+    });
+  };
+}
 
 export class CreateAdminUserDto {
   @IsOptional()
@@ -12,7 +35,7 @@ export class CreateAdminUserDto {
   email?: string;
 
   @IsOptional()
-  @IsString() // add your own phone regex if you want
+  @IsString()
   phoneNumber?: string;
 
   @IsString()
@@ -28,8 +51,8 @@ export class CreateAdminUserDto {
   lastName?: string;
 
   // at least one of email or phoneNumber
-  @ValidateIf((o) => !o.email && !o.phoneNumber)
-  get _emailOrPhoneRequired(): never {
-    throw new Error('Either email or phoneNumber is required');
+  @IsEmailOrPhoneRequired()
+  get _emailOrPhoneRequired(): string {
+    return this.email || this.phoneNumber || '';
   }
 }
