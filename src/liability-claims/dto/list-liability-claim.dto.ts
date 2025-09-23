@@ -54,11 +54,6 @@ export class ListLiabilityClaimDto {
   @IsOptional()
   @Transform(({ value }) => toBool(value))
   @IsBoolean()
-  hitAndRun?: boolean;
-
-  @IsOptional()
-  @Transform(({ value }) => toBool(value))
-  @IsBoolean()
   agreeToEmails?: boolean;
 
   @IsOptional()

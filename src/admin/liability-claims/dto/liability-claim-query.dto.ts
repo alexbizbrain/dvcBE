@@ -38,11 +38,6 @@ export class LiabilityClaimQueryDto {
   @IsBooleanString()
   atFaultDriver?: string;
 
-  /** "true" | "false" */
-  @IsOptional()
-  @IsBooleanString()
-  hitAndRun?: string;
-
   @IsOptional()
   @IsISO8601()
   dateFrom?: string;
