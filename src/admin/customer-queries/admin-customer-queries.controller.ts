@@ -8,7 +8,7 @@ import {
   HttpCode,
 } from '@nestjs/common';
 import { AdminCustomerQueriesService } from './admin-customer-queries.service';
-import { QueryCustomerQueriesDto } from './dto/query-customer-queries.dto';
+import { CustomerQueryListDto } from './dto/customer-query-list.dto';
 
 @Controller('admin/customer-queries')
 export class AdminCustomerQueriesController {
@@ -17,20 +17,31 @@ export class AdminCustomerQueriesController {
   ) {}
 
   @Get()
-  @HttpCode(HttpStatus.OK)
-  findAll(@Query() queryDto: QueryCustomerQueriesDto) {
-    return this.adminCustomerQueriesService.findAll(queryDto);
+  async findAll(@Query() query: CustomerQueryListDto) {
+    const data = await this.adminCustomerQueriesService.findAll(query);
+    return { success: true, message: 'Customer queries retrieved', data };
+  }
+
+  @Get('count')
+  async count() {
+    const data = await this.adminCustomerQueriesService.count();
+    return { success: true, data };
   }
 
   @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  findOne(@Param('id') id: string) {
-    return this.adminCustomerQueriesService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const data = await this.adminCustomerQueriesService.findOne(id);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Customer query retrieved',
+      data,
+    };
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  remove(@Param('id') id: string) {
-    return this.adminCustomerQueriesService.remove(id);
+  async remove(@Param('id') id: string) {
+    const result = await this.adminCustomerQueriesService.remove(id);
+    return { statusCode: HttpStatus.OK, message: result.message };
   }
 }

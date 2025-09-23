@@ -1,4 +1,4 @@
-// src/admin/reviews/dto/review-query.dto.ts
+// src/admin/customer-queries/dto/customer-query-list.dto.ts
 import { Transform } from 'class-transformer';
 import {
   IsInt,
@@ -9,7 +9,7 @@ import {
   IsISO8601,
 } from 'class-validator';
 
-export class ReviewQueryDto {
+export class CustomerQueryListDto {
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -23,31 +23,10 @@ export class ReviewQueryDto {
   @Transform(({ value }) => Number(value))
   limit?: number = 10;
 
-  /** search by customerName or reviewText */
+  /** search by name (first/last), email, or message content */
   @IsOptional()
   @IsString()
   q?: string;
-
-  /** filter by exact source, e.g. "Trustpilot" */
-  @IsOptional()
-  @IsString()
-  source?: string;
-
-  /** rating >= minRating */
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(5)
-  @Transform(({ value }) => Number(value))
-  minRating?: number;
-
-  /** rating <= maxRating */
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(5)
-  @Transform(({ value }) => Number(value))
-  maxRating?: number;
 
   /** optional date window */
   @IsOptional()

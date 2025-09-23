@@ -1,13 +1,15 @@
+// src/admin/admin-users/dto/admin-query.dto.ts
+import { Transform } from 'class-transformer';
 import {
+  IsIn,
+  IsInt,
   IsOptional,
   IsString,
-  IsInt,
   Min,
   Max,
-  IsISO8601,
   IsBooleanString,
+  IsISO8601,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 
 export class AdminQueryDto {
   @IsOptional()
@@ -23,11 +25,12 @@ export class AdminQueryDto {
   @Transform(({ value }) => Number(value))
   limit?: number = 10;
 
+  /** search by email, firstName, phoneNumber */
   @IsOptional()
   @IsString()
   search?: string;
 
-  // optional filters
+  /** optional active filter: "true" | "false" */
   @IsOptional()
   @IsBooleanString()
   isActive?: string;
@@ -39,4 +42,9 @@ export class AdminQueryDto {
   @IsOptional()
   @IsISO8601()
   dateTo?: string;
+
+  /** "personal" (isBusinessUser=false) | "business" (isBusinessUser=true) */
+  @IsOptional()
+  @IsIn(['personal', 'business'])
+  type?: 'personal' | 'business';
 }

@@ -1,4 +1,3 @@
-// src/admin/users/admin-users.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -15,10 +14,23 @@ import {
 import { BulkActionDto } from './dto/bulk-action.dto';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/prisma.service';
+import { UserMetricsDto } from './dto/user-metrics.dto';
 
 @Injectable()
 export class AdminUsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async metrics(): Promise<UserMetricsDto> {
+    const [totalUsers, activeUsers, emailVerified, businessUsers] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.user.count({ where: { isActive: true } }),
+        this.prisma.user.count({ where: { isEmailVerified: true } }),
+        this.prisma.user.count({ where: { isBusinessUser: true } }),
+      ]);
+
+    return { totalUsers, activeUsers, emailVerified, businessUsers };
+  }
 
   async createUser(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     // Get USER role
@@ -48,9 +60,14 @@ export class AdminUsersService {
       });
 
       return this.mapToResponseDto(user);
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to create user');
     }
+  }
+
+  async totalUsers(): Promise<number> {
+    const allUsersCount = await this.prisma.user.count();
+    return allUsersCount;
   }
 
   async findAllUsers(query: UserQueryDto): Promise<PaginatedUsersResponseDto> {
@@ -197,7 +214,7 @@ export class AdminUsersService {
         },
       });
       return this.mapToResponseDto(updatedUser);
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to update user');
     }
   }
@@ -296,7 +313,7 @@ export class AdminUsersService {
             success++;
             break;
         }
-      } catch (error) {
+      } catch {
         failed++;
       }
     }

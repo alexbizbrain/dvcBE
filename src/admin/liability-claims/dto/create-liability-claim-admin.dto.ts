@@ -1,8 +1,8 @@
-import { IsString, IsBoolean, IsOptional, IsIn } from 'class-validator';
+import { IsBoolean, IsEmail, IsOptional, IsString } from 'class-validator';
 
-export class CreateLiabilityClaimAdminDto {
+export class CreateLiabilityClaimDto {
   @IsOptional()
-  @IsString()
+  @IsEmail()
   email?: string;
 
   @IsOptional()
@@ -11,17 +11,17 @@ export class CreateLiabilityClaimAdminDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['us'])
-  countryCode?: string;
+  countryCode?: string; // e.g. "+1" or "us" based on your current design
 
   @IsBoolean()
-  atFaultDriver: boolean;
+  atFaultDriver!: boolean;
 
   @IsString()
-  state: string;
+  state!: string;
 
+  @IsOptional()
   @IsBoolean()
-  hitAndRun: boolean;
+  hitAndRun?: boolean;
 
   @IsOptional()
   @IsBoolean()
@@ -33,5 +33,5 @@ export class CreateLiabilityClaimAdminDto {
 
   @IsOptional()
   @IsString()
-  userId?: string;
+  userId?: string; // optional link
 }

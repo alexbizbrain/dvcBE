@@ -1,191 +1,109 @@
-import {
-  Injectable,
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
-import { QueryCustomerQueriesDto } from './dto/query-customer-queries.dto';
 import { Prisma } from '@prisma/client';
-
-export interface PaginatedCustomerQueries {
-  success: boolean;
-  data: any[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
+import {
+  CustomerQueryCountDto,
+  CustomerQueryItemDto,
+  PaginatedCustomerQueriesDto,
+} from './dto/customer-query-response.dto';
+import { CustomerQueryListDto } from './dto/customer-query-list.dto';
 
 @Injectable()
 export class AdminCustomerQueriesService {
   constructor(private prisma: PrismaService) {}
 
+  private select() {
+    return {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phoneNumber: true,
+      countryCode: true,
+      message: true,
+      createdAt: true,
+      updatedAt: true,
+    } as const;
+  }
+
+  private toItem(q: any): CustomerQueryItemDto {
+    return q;
+  }
+
   async findAll(
-    queryDto: QueryCustomerQueriesDto,
-  ): Promise<PaginatedCustomerQueries> {
-    try {
-      const { page = 1, limit = 10, search, email, name } = queryDto;
-      const skip = (page - 1) * limit;
+    query: CustomerQueryListDto,
+  ): Promise<PaginatedCustomerQueriesDto> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
 
-      // Build where clause for search functionality
-      const whereClause: Prisma.CustomerQueryWhereInput = {};
-
-      if (search) {
-        whereClause.OR = [
-          {
-            firstName: {
-              contains: search,
-              mode: 'insensitive',
+    const where: Prisma.CustomerQueryWhereInput = {
+      ...(query.q
+        ? {
+            OR: [
+              { firstName: { contains: query.q, mode: 'insensitive' } },
+              { lastName: { contains: query.q, mode: 'insensitive' } },
+              { email: { contains: query.q, mode: 'insensitive' } },
+              { message: { contains: query.q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+      ...(query.dateFrom || query.dateTo
+        ? {
+            createdAt: {
+              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+              ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
             },
-          },
-          {
-            lastName: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
-          {
-            email: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          },
-        ];
-      }
+          }
+        : {}),
+    };
 
-      if (email) {
-        whereClause.email = {
-          contains: email,
-          mode: 'insensitive',
-        };
-      }
-
-      if (name) {
-        whereClause.OR = [
-          {
-            firstName: {
-              contains: name,
-              mode: 'insensitive',
-            },
-          },
-          {
-            lastName: {
-              contains: name,
-              mode: 'insensitive',
-            },
-          },
-        ];
-      }
-
-      // Get total count for pagination
-      const total = await this.prisma.customerQuery.count({
-        where: whereClause,
-      });
-
-      // Get paginated results
-      const queries = await this.prisma.customerQuery.findMany({
-        where: whereClause,
+    const [rows, total] = await Promise.all([
+      this.prisma.customerQuery.findMany({
+        where,
         skip,
         take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          phoneNumber: true,
-          countryCode: true,
-          message: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+        orderBy: { createdAt: 'desc' },
+        select: this.select(),
+      }),
+      this.prisma.customerQuery.count({ where }),
+    ]);
 
-      const totalPages = Math.ceil(total / limit);
-
-      return {
-        success: true,
-        data: queries,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1,
-        },
-      };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Failed to retrieve customer queries',
-      );
-    }
+    return {
+      items: rows.map((r) => this.toItem(r)),
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
   }
 
-  async findOne(id: string) {
-    try {
-      const query = await this.prisma.customerQuery.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          phoneNumber: true,
-          countryCode: true,
-          message: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      if (!query) {
-        throw new NotFoundException('Customer query not found');
-      }
-
-      return {
-        success: true,
-        data: query,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        'Failed to retrieve customer query',
-      );
-    }
+  async count(): Promise<CustomerQueryCountDto> {
+    const total = await this.prisma.customerQuery.count();
+    return { total };
   }
 
-  async remove(id: string) {
-    try {
-      const query = await this.prisma.customerQuery.findUnique({
-        where: { id },
-      });
+  async findOne(id: string): Promise<CustomerQueryItemDto> {
+    const q = await this.prisma.customerQuery.findUnique({
+      where: { id },
+      select: this.select(),
+    });
+    if (!q) throw new NotFoundException('Customer query not found');
+    return this.toItem(q);
+  }
 
-      if (!query) {
-        throw new NotFoundException('Customer query not found');
-      }
+  async remove(id: string): Promise<{ message: string }> {
+    // hard delete; if you want soft delete add a flag to schema
+    await this.ensureExists(id);
+    await this.prisma.customerQuery.delete({ where: { id } });
+    return { message: 'Customer query deleted successfully' };
+  }
 
-      await this.prisma.customerQuery.delete({
-        where: { id },
-      });
-
-      return {
-        success: true,
-        message: 'Customer query deleted successfully',
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Failed to delete customer query');
-    }
+  private async ensureExists(id: string) {
+    const exists = await this.prisma.customerQuery.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!exists) throw new NotFoundException('Customer query not found');
   }
 }

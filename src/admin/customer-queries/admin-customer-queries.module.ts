@@ -6,5 +6,6 @@ import { PrismaService } from '../../prisma.service';
 @Module({
   controllers: [AdminCustomerQueriesController],
   providers: [AdminCustomerQueriesService, PrismaService],
+  exports: [AdminCustomerQueriesService],
 })
 export class AdminCustomerQueriesModule {}

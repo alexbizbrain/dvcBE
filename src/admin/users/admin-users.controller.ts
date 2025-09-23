@@ -10,6 +10,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { AdminUsersService } from './admin-users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -20,10 +21,29 @@ import {
   PaginatedUsersResponseDto,
 } from './dto/user-response.dto';
 import { BulkActionDto } from './dto/bulk-action.dto';
+import { AuthGuard } from '@nestjs/passport';
 
+@UseGuards(AuthGuard('admin-jwt'))
 @Controller('admin/users')
 export class AdminUsersController {
   constructor(private readonly adminUsersService: AdminUsersService) {}
+
+  @Get('total')
+  async totalUsers() {
+    return await this.adminUsersService.totalUsers();
+  }
+
+  @Get('metrics')
+  async metrics() {
+    const data = await this.adminUsersService.metrics();
+    return { success: true, data };
+  }
+
+  @Get()
+  async findAll(@Query() query: UserQueryDto) {
+    const data = await this.adminUsersService.findAllUsers(query);
+    return { success: true, message: 'Users retrieved', data };
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

@@ -1,114 +1,51 @@
 // src/admin/reviews/admin-reviews.controller.ts
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  Query,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
+  Query,
 } from '@nestjs/common';
 import { AdminReviewsService } from './admin-reviews.service';
-import { ReviewDto } from './dto/review.dto';
+import { UpdateReviewDto } from './dto/update-review.dto';
 import { ReviewQueryDto } from './dto/review-query.dto';
-import {
-  ReviewResponseDto,
-  PaginatedReviewsResponseDto,
-} from './dto/review-response.dto';
 
 @Controller('admin/reviews')
 export class AdminReviewsController {
   constructor(private readonly adminReviewsService: AdminReviewsService) {}
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  async createReview(@Body() reviewDto: ReviewDto): Promise<{
-    success: boolean;
-    message: string;
-    data: ReviewResponseDto;
-  }> {
-    const review = await this.adminReviewsService.createReview(reviewDto);
-    return {
-      success: true,
-      message: 'Review created successfully',
-      data: review,
-    };
+  @Get('metrics')
+  async metrics() {
+    const data = await this.adminReviewsService.metrics();
+    return { success: true, data };
   }
 
   @Get()
-  async findAllReviews(@Query() query: ReviewQueryDto): Promise<{
-    success: boolean;
-    message: string;
-    data: PaginatedReviewsResponseDto;
-  }> {
-    const result = await this.adminReviewsService.findAllReviews(query);
-    return {
-      success: true,
-      message: 'Reviews retrieved successfully',
-      data: result,
-    };
-  }
-
-  @Get('stats')
-  async getReviewStats(): Promise<{
-    success: boolean;
-    message: string;
-    data: {
-      total: number;
-      averageRating: number;
-      ratingDistribution: { rating: number; count: number }[];
-      sourceDistribution: { source: string; count: number }[];
-    };
-  }> {
-    const stats = await this.adminReviewsService.getReviewStats();
-    return {
-      success: true,
-      message: 'Review statistics retrieved successfully',
-      data: stats,
-    };
+  async findAll(@Query() query: ReviewQueryDto) {
+    const data = await this.adminReviewsService.findAll(query);
+    return { success: true, message: 'Reviews retrieved', data };
   }
 
   @Get(':id')
-  async findOneReview(@Param('id') id: string): Promise<{
-    success: boolean;
-    message: string;
-    data: ReviewResponseDto;
-  }> {
-    const review = await this.adminReviewsService.findOneReview(id);
-    return {
-      success: true,
-      message: 'Review retrieved successfully',
-      data: review,
-    };
+  async findOne(@Param('id') id: string) {
+    const data = await this.adminReviewsService.findOne(id);
+    return { statusCode: HttpStatus.OK, message: 'Review retrieved', data };
   }
 
   @Patch(':id')
-  async updateReview(
-    @Param('id') id: string,
-    @Body() reviewDto: ReviewDto,
-  ): Promise<{
-    success: boolean;
-    message: string;
-    data: ReviewResponseDto;
-  }> {
-    const review = await this.adminReviewsService.updateReview(id, reviewDto);
-    return {
-      success: true,
-      message: 'Review updated successfully',
-      data: review,
-    };
+  async update(@Param('id') id: string, @Body() dto: UpdateReviewDto) {
+    const data = await this.adminReviewsService.update(id, dto);
+    return { statusCode: HttpStatus.OK, message: 'Review updated', data };
   }
 
   @Delete(':id')
-  async deleteReview(@Param('id') id: string): Promise<any> {
-    await this.adminReviewsService.deleteReview(id);
-    return {
-      success: true,
-      message: 'Review updated successfully',
-      data: {},
-    };
+  @HttpCode(HttpStatus.OK)
+  async remove(@Param('id') id: string) {
+    const result = await this.adminReviewsService.remove(id);
+    return { statusCode: HttpStatus.OK, message: result.message };
   }
 }
