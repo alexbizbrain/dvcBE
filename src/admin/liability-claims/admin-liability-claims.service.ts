@@ -25,7 +25,7 @@ export interface PaginatedLiabilityClaims {
 
 @Injectable()
 export class AdminLiabilityClaimsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private selectClaim() {
     return {
@@ -35,7 +35,6 @@ export class AdminLiabilityClaimsService {
       countryCode: true,
       atFaultDriver: true,
       state: true,
-      hitAndRun: true,
       agreeToEmails: true,
       agreeToSms: true,
       createdAt: true,
@@ -66,27 +65,24 @@ export class AdminLiabilityClaimsService {
     const where: Prisma.LiabilityClaimWhereInput = {
       ...(query.q
         ? {
-            OR: [
-              { email: { contains: query.q, mode: 'insensitive' } },
-              { phoneNumber: { contains: query.q, mode: 'insensitive' } },
-              { state: { contains: query.q, mode: 'insensitive' } },
-            ],
-          }
+          OR: [
+            { email: { contains: query.q, mode: 'insensitive' } },
+            { phoneNumber: { contains: query.q, mode: 'insensitive' } },
+            { state: { contains: query.q, mode: 'insensitive' } },
+          ],
+        }
         : {}),
       ...(query.state ? { state: { equals: query.state } } : {}),
       ...(query.atFaultDriver !== undefined
         ? { atFaultDriver: query.atFaultDriver === 'true' }
         : {}),
-      ...(query.hitAndRun !== undefined
-        ? { hitAndRun: query.hitAndRun === 'true' }
-        : {}),
       ...(query.dateFrom || query.dateTo
         ? {
-            createdAt: {
-              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-              ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
-            },
-          }
+          createdAt: {
+            ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+            ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+          },
+        }
         : {}),
     };
 
@@ -141,10 +137,9 @@ export class AdminLiabilityClaimsService {
         countryCode: dto.countryCode ?? 'us',
         atFaultDriver: dto.atFaultDriver,
         state: dto.state,
-        hitAndRun: dto.hitAndRun ?? false,
         agreeToEmails: dto.agreeToEmails ?? false,
         agreeToSms: dto.agreeToSms ?? false,
-        userId: dto.userId ?? null,
+        userId: dto.userId!,
       },
       select: this.selectClaim(),
     });
@@ -166,11 +161,10 @@ export class AdminLiabilityClaimsService {
         countryCode: dto.countryCode,
         atFaultDriver: dto.atFaultDriver,
         state: dto.state,
-        hitAndRun: dto.hitAndRun,
         agreeToEmails: dto.agreeToEmails,
         agreeToSms: dto.agreeToSms,
         // link/unlink
-        userId: dto.userId === null ? null : (dto.userId ?? undefined),
+        userId: dto.userId ?? undefined,
       },
       select: this.selectClaim(),
     });

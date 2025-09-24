@@ -13,7 +13,6 @@ export class LiabilityClaimResponseDto {
   countryCode!: string;
   atFaultDriver!: boolean;
   state!: string;
-  hitAndRun!: boolean;
   agreeToEmails!: boolean;
   agreeToSms!: boolean;
   createdAt!: Date;

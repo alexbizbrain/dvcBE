@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
-import { CreateLiabilityClaimDto } from './dto/create-liability-claim.dto';
 import { UsersService } from 'src/users/users.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { EnsureUserResult } from './types/liability-claim.type';
 import { ListLiabilityClaimDto } from './dto/list-liability-claim.dto';
-import { Prisma } from '@prisma/client';
+import { CreateLiabilityClaimDto } from './dto/create-liability-claim.dto';
 import { UpdateLiabilityClaimDto } from './dto/update-liability-claim.dto';
 
 type OtpNotify = { channel: 'email' | 'phone'; contact: string; code: string };
@@ -14,18 +14,7 @@ export class LiabilityClaimsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-  ) {}
-
-  private normalizeState(state: string) {
-    return state.trim().toLowerCase();
-  }
-
-  private isNotAllowedState(state: string) {
-    const s = this.normalizeState(state);
-    return (
-      s === 'new york' || s === 'north carolina' || s === 'ny' || s === 'nc'
-    );
-  }
+  ) { }
 
   private async ensureUserTx(
     tx: Prisma.TransactionClient,
@@ -64,51 +53,9 @@ export class LiabilityClaimsService {
     return { id: created.id, existed: false };
   }
 
-  private computeEligibility(
-    atFaultDriver: boolean,
-    hitAndRun: boolean,
-    state: string,
-  ) {
-    const reasons: string[] = [];
-    if (atFaultDriver) reasons.push('atFaultDriver must be no');
-    if (hitAndRun) reasons.push('hitAndRun must be no');
-    if (this.isNotAllowedState(state))
-      reasons.push('state must be rather then New York or North Carolina');
-    return { eligible: reasons.length === 0, reasons };
-  }
-
   async create(dto: CreateLiabilityClaimDto) {
     try {
       const countryCode = dto.countryCode ?? 'us';
-      const eligibility = this.computeEligibility(
-        dto.atFaultDriver,
-        dto.hitAndRun,
-        dto.state,
-      );
-
-      if (!eligibility.eligible) {
-        const claim = await this.prisma.liabilityClaim.create({
-          data: {
-            email: dto.email ?? null,
-            phoneNumber: dto.phoneNumber ?? null,
-            countryCode:
-              typeof countryCode === 'string'
-                ? countryCode.toLowerCase()
-                : countryCode,
-            atFaultDriver: dto.atFaultDriver,
-            state: dto.state,
-            hitAndRun: dto.hitAndRun,
-            agreeToEmails: dto.agreeToEmails ?? false,
-            agreeToSms: dto.agreeToSms ?? false,
-          },
-        });
-
-        return {
-          claim,
-          eligibility,
-          user: null,
-        };
-      }
 
       const { ensuredUser, claim, otp } = await this.prisma.$transaction(
         async (tx) => {
@@ -129,12 +76,9 @@ export class LiabilityClaimsService {
                   : countryCode,
               atFaultDriver: dto.atFaultDriver,
               state: dto.state,
-              hitAndRun: dto.hitAndRun,
               agreeToEmails: dto.agreeToEmails ?? false,
               agreeToSms: dto.agreeToSms ?? false,
-              ...(ensuredUser.id
-                ? { user: { connect: { id: ensuredUser.id } } }
-                : {}),
+              user: { connect: { id: ensuredUser.id! } },
             },
           });
 
@@ -186,7 +130,6 @@ export class LiabilityClaimsService {
 
       return {
         claim,
-        eligibility,
         user: ensuredUser.id
           ? { id: ensuredUser.id, existed: ensuredUser.existed }
           : null,
@@ -206,7 +149,6 @@ export class LiabilityClaimsService {
     state,
     countryCode,
     atFaultDriver,
-    hitAndRun,
     agreeToEmails,
     agreeToSms,
   }: ListLiabilityClaimDto) {
@@ -221,7 +163,6 @@ export class LiabilityClaimsService {
     if (state) where.state = { contains: state, mode: 'insensitive' };
     if (countryCode) where.countryCode = countryCode.toLowerCase();
     if (typeof atFaultDriver === 'boolean') where.atFaultDriver = atFaultDriver;
-    if (typeof hitAndRun === 'boolean') where.hitAndRun = hitAndRun;
     if (typeof agreeToEmails === 'boolean') where.agreeToEmails = agreeToEmails;
     if (typeof agreeToSms === 'boolean') where.agreeToSms = agreeToSms;
 
@@ -256,7 +197,6 @@ export class LiabilityClaimsService {
           countryCode: dto.countryCode?.toLowerCase(),
           atFaultDriver: dto.atFaultDriver,
           state: dto.state,
-          hitAndRun: dto.hitAndRun,
           agreeToEmails: dto.agreeToEmails,
           agreeToSms: dto.agreeToSms,
         },

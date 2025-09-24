@@ -23,10 +23,6 @@ export class UpdateLiabilityClaimDto {
 
   @IsOptional()
   @IsBoolean()
-  hitAndRun?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
   agreeToEmails?: boolean;
 
   @IsOptional()
