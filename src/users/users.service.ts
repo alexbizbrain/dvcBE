@@ -187,6 +187,23 @@ export class UsersService {
     return this.toSafeUser(user);
   }
 
+  async getRecentLiabilityClaim(userId: string) {
+    const recentClaim = await this.prismaService.liabilityClaim.findFirst({
+      where: {
+        userId: userId,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    if (!recentClaim) {
+      throw new NotFoundException('No liability claims found for this user');
+    }
+
+    return recentClaim;
+  }
+
   // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
   async logout(_id: string, _token: string) {
     return true;

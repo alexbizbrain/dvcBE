@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CalculatorProgressService } from 'src/calculator-progress/calculator-progress.service';
 import { GetClaimsQueryDto } from './dto/claims-query.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, ClaimStatus } from '@prisma/client';
 
 @Injectable()
 export class UserDashboardService {
@@ -16,8 +16,9 @@ export class UserDashboardService {
 
     const where: Prisma.ClaimWhereInput = {
       userId,
-      ...(status?.length ? { status: { in: status } } : {}),
+      ...(status?.length ? { status: { in: status as ClaimStatus[] } } : {}),
     };
+
     const orderBy: Prisma.ClaimOrderByWithRelationInput =
       sortBy && sortOrder
         ? {

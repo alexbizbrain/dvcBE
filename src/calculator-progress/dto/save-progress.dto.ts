@@ -5,23 +5,35 @@ import {
   Max,
   IsBoolean,
   ValidateNested,
+  IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { VehicleInfoDto } from './vehicle-info.dto';
 import { AccidentInfoDto } from './accident-info.dto';
 import { InsuranceInfoDto } from './insurance-info.dto';
 import { PricingPlanDto } from './pricing-plan.dto';
+import { LiabilityInfoDto } from './liability-info.dto';
+import { ClaimStatus } from '@prisma/client';
 
 export class SaveProgressDto {
   @IsOptional()
   @IsInt()
-  @Min(1)
-  @Max(5)
+  @Min(0)
+  @Max(6)
   currentStep?: number;
+
+  @IsOptional()
+  @IsEnum(ClaimStatus)
+  status?: ClaimStatus;
 
   @IsOptional()
   @IsBoolean()
   isSubmitted?: boolean;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LiabilityInfoDto)
+  liabilityInfo?: LiabilityInfoDto;
 
   @IsOptional()
   @ValidateNested()

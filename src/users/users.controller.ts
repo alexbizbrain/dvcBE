@@ -118,6 +118,11 @@ export class UsersController {
     return this.usersService.getSafeUserById(user.id);
   }
 
+  @Get('recent-liability-claim')
+  async getRecentLiabilityClaim(@CurrentUser() user: User) {
+    return this.usersService.getRecentLiabilityClaim(user.id);
+  }
+
   @Roles('user')
   @Post('logout')
   async logout(

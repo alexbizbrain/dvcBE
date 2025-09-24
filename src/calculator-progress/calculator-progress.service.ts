@@ -2,10 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SaveProgressDto } from './dto/save-progress.dto';
 import { CalculatorProgressResponseDto } from './dto/calculator-progress-response.dto';
+import { ClaimStatus } from '@prisma/client';
 
 @Injectable()
 export class CalculatorProgressService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async getProgress(
     userId: string,
@@ -14,7 +15,7 @@ export class CalculatorProgressService {
     const claim = await this.prisma.claim.findFirst({
       where: {
         userId,
-        status: 'draft',
+        status: ClaimStatus.INPROGRESS,
       },
     });
 
@@ -33,7 +34,7 @@ export class CalculatorProgressService {
     const existingDraft = await this.prisma.claim.findFirst({
       where: {
         userId,
-        status: 'draft',
+        status: ClaimStatus.INPROGRESS,
       },
     });
 
@@ -47,7 +48,35 @@ export class CalculatorProgressService {
       updateData.currentStep = data.currentStep;
     }
 
+    // Update status if provided
+    if (data.status !== undefined) {
+      updateData.status = data.status;
+    }
+    if (
+      data.currentStep === 2 &&
+      typeof existingDraft?.liabilityInfo === 'object' &&
+      existingDraft?.liabilityInfo !== null &&
+      (existingDraft.liabilityInfo as any).isAtFault
+    ) {
+      updateData.status = ClaimStatus.DISQUALIFIED;
+    }
+    if (
+      data.currentStep === 2 &&
+      typeof existingDraft?.accidentInfo === 'object' &&
+      existingDraft?.accidentInfo !== null &&
+      (existingDraft.accidentInfo as any).hitAndRun
+    ) {
+      updateData.status = ClaimStatus.DISQUALIFIED;
+    }
+
     // Handle JSON field updates
+    if (data.liabilityInfo) {
+      updateData.liabilityInfo = this.mergeJsonField(
+        existingDraft?.liabilityInfo as any,
+        data.liabilityInfo,
+      );
+    }
+
     if (data.vehicleInfo) {
       updateData.vehicleInfo = this.mergeJsonField(
         existingDraft?.vehicleInfo as any,
@@ -88,7 +117,7 @@ export class CalculatorProgressService {
       claim = await this.prisma.claim.create({
         data: {
           userId,
-          status: 'draft',
+          status: ClaimStatus.INPROGRESS,
           ...updateData,
         },
       });
@@ -103,7 +132,7 @@ export class CalculatorProgressService {
       await this.prisma.claim.deleteMany({
         where: {
           userId,
-          status: 'draft',
+          status: ClaimStatus.INPROGRESS,
         },
       });
     } catch (error) {
@@ -116,7 +145,7 @@ export class CalculatorProgressService {
     const draftClaim = await this.prisma.claim.findFirst({
       where: {
         userId,
-        status: 'draft',
+        status: ClaimStatus.INPROGRESS,
       },
     });
 
@@ -128,7 +157,7 @@ export class CalculatorProgressService {
     await this.prisma.claim.update({
       where: { id: draftClaim.id },
       data: {
-        status: 'completed',
+        status: ClaimStatus.DV_CLAIM_CREATED,
         currentStep: 4, // Mark as completed
         lastAccessedAt: new Date(),
       },
@@ -146,10 +175,10 @@ export class CalculatorProgressService {
 
     const totalClaims = await this.prisma.claim.count();
     const completedClaims = await this.prisma.claim.count({
-      where: { status: 'completed' },
+      where: { status: ClaimStatus.DV_CLAIM_CREATED },
     });
     const draftClaims = await this.prisma.claim.count({
-      where: { status: 'draft' },
+      where: { status: ClaimStatus.INPROGRESS },
     });
 
     // Get unique users who started the calculator
@@ -205,7 +234,8 @@ export class CalculatorProgressService {
     return {
       id: claim.id,
       currentStep: claim.currentStep,
-      isSubmitted: claim.status === 'completed',
+      isSubmitted: claim.status === ClaimStatus.DV_CLAIM_CREATED,
+      status: claim.status,
       lastAccessedAt: claim.lastAccessedAt,
       vehicleInfo: {
         year: vehicleInfo.year || vehicleInfo.vehicleYear,
@@ -213,13 +243,13 @@ export class CalculatorProgressService {
         model: vehicleInfo.model || vehicleInfo.vehicleModel,
         vin: vehicleInfo.vin || vehicleInfo.vehicleVin,
         mileage: vehicleInfo.mileage || vehicleInfo.vehicleMileage,
+        repairCost: vehicleInfo.repairCost,
+        approximateCarPrice: vehicleInfo.approximateCarPrice,
       },
       accidentInfo: {
         accidentDate: accidentInfo.accidentDate,
         isAtFault: accidentInfo.isAtFault,
         isRepaired: accidentInfo.isRepaired,
-        repairCost: accidentInfo.repairCost,
-        approximateCarPrice: accidentInfo.approximateCarPrice,
         repairInvoiceFileName: accidentInfo.repairInvoiceFileName,
         repairInvoiceFileUrl: accidentInfo.repairInvoiceFileUrl,
         nextAction: accidentInfo.nextAction,
@@ -236,11 +266,22 @@ export class CalculatorProgressService {
         driverEmail: insuranceInfo.driverEmail,
         driverPhone: insuranceInfo.driverPhone,
         driverCountryCode: insuranceInfo.driverCountryCode,
+        autoInsuranceCardFileName: accidentInfo.autoInsuranceCardFileName,
+        driverLicenseFrontFileName: accidentInfo.driverLicenseFrontFileName,
+        autoInsuranceCardFileUrl: accidentInfo.autoInsuranceCardFileUrl,
+        driverLicenseFrontFileUrl: accidentInfo.driverLicenseFrontFileUrl,
+        driverLicenseBackFileName: accidentInfo.driverLicenseBackFileName,
+        driverLicenseBackFileUrl: accidentInfo.driverLicenseBackFileUrl,
       },
       pricingPlan: {
         selectedPlan: pricingPlan.selectedPlan,
         agreedToTerms: pricingPlan.agreedToTerms,
         signatureDataUrl: pricingPlan.signatureDataUrl,
+      },
+      liabilityInfo: {
+        isAtFault: claim.liabilityInfo?.isAtFault,
+        state: claim.liabilityInfo?.state,
+        accidentState: claim.liabilityInfo?.accidentState,
       },
       createdAt: claim.createdAt,
       updatedAt: claim.updatedAt,

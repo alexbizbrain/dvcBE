@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { HealthService } from './health.service';
+import { ClaimStatus } from '@prisma/client';
 
 type RecentActivity = {
   type: 'user' | 'claim' | 'customer-query' | 'review' | 'liability-claim';
@@ -49,7 +50,7 @@ export class AdminService {
         this.prismaService.claim.count({
           where: {
             status: {
-              in: ['draft', 'in-progress'],
+              in: [ClaimStatus.INPROGRESS],
             },
           },
         }),

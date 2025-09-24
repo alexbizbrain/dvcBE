@@ -9,15 +9,10 @@ export class AccidentInfoDto {
   isAtFault?: boolean;
 
   @IsOptional()
+  hitAndRun?: boolean;
+
+  @IsOptional()
   isRepaired?: boolean;
-
-  @IsOptional()
-  @IsString()
-  repairCost?: string;
-
-  @IsOptional()
-  @IsString()
-  approximateCarPrice?: string;
 
   @IsOptional()
   @IsString()
