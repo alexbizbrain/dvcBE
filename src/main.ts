@@ -5,6 +5,7 @@ import { AllExceptionsFilter } from './common/http/filters/http-exception.filter
 import { TransformInterceptor } from './common/http/interceptors/transform.interceptor';
 import { TimeoutInterceptor } from './common/http/interceptors/timeout.interceptor';
 import { Logger } from 'nestjs-pino';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -16,6 +17,7 @@ async function bootstrap() {
   });
 
   app.useLogger(app.get(Logger));
+  app.use(cookieParser());
 
   // Enable global validation
   app.useGlobalPipes(
@@ -31,8 +33,13 @@ async function bootstrap() {
     new TimeoutInterceptor(),
   );
 
-  // Enable CORS if needed for frontend
-  app.enableCors();
+  // Enable CORS for frontend with credentials (cookies)
+  const allowedOrigin =
+    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  app.enableCors({
+    origin: allowedOrigin,
+    credentials: true,
+  });
 
   const port = parseInt(process.env.PORT ?? '4000', 10);
 
