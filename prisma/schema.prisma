@@ -126,3 +126,14 @@ model Claim {
 
   @@map("claims")
 }
+
+model InsuranceCompany {
+  id           Int      @id @default(autoincrement())
+  name         String
+  contactEmail String
+  addedBy      String   // e.g. "system" | "user"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("insurance_companies")
+}
