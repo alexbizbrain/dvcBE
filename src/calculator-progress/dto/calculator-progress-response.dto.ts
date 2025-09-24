@@ -3,7 +3,7 @@ import { InsuranceInfoDto } from './insurance-info.dto';
 import { PricingPlanDto } from './pricing-plan.dto';
 import { VehicleInfoDto } from './vehicle-info.dto';
 import { LiabilityInfoDto } from './liability-info.dto';
-import { ClaimStatus } from '../enums/claim-status.enum';
+import { ClaimStatus } from '@prisma/client';
 
 export class CalculatorProgressResponseDto {
   id: string;

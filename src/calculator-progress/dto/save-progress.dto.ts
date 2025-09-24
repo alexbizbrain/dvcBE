@@ -13,7 +13,7 @@ import { AccidentInfoDto } from './accident-info.dto';
 import { InsuranceInfoDto } from './insurance-info.dto';
 import { PricingPlanDto } from './pricing-plan.dto';
 import { LiabilityInfoDto } from './liability-info.dto';
-import { ClaimStatus } from '../enums/claim-status.enum';
+import { ClaimStatus } from '@prisma/client';
 
 export class SaveProgressDto {
   @IsOptional()
