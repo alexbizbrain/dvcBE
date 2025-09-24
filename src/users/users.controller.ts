@@ -5,6 +5,8 @@ import {
   HttpCode,
   HttpStatus,
   Get,
+  Res,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserDto } from './dto/user.dto';
@@ -17,6 +19,8 @@ import { AuthService } from 'src/auth/auth.service';
 import { CurrentUser } from 'src/common/auth/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 import { AuthToken } from 'src/common/auth/decorators/auth-token.decorator';
+import { Roles } from 'src/common/auth/decorators/roles.decorator';
+import type { Response } from 'express';
 
 @Controller('users')
 export class UsersController {
@@ -51,22 +55,66 @@ export class UsersController {
   @Public()
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
-  async verifyOtp(@Body() dto: VerifyOtpDto) {
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.usersService.verifyOtp(dto);
-    const token = await this.authService.issueAccessTokenForUserId(
+
+    const accessToken = await this.authService.issueAccessTokenForUserId(
       result.userId,
     );
-    const user = await this.usersService.getSafeUserById(result.userId);
+    const refreshToken = await this.authService.issueRefreshTokenForUserId(
+      result.userId,
+    );
+
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: (process.env.NODE_ENV ?? 'development') === 'production',
+      sameSite: 'lax', // 'none' if cross-site with custom domain
+      path: '/',
+    });
+
     return {
-      ...result,
-      message: result.message,
-      token,
-      user,
+      success: true,
+      data: {
+        token: accessToken,
+      },
     };
   }
 
+  @Public()
+  @Post('refresh')
+  async refresh(
+    @Res({ passthrough: true }) res: Response,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    @Body() _noop: any = {},
+  ) {
+    const refresh = (res.req as any).cookies?.refresh_token as
+      | string
+      | undefined;
+    if (!refresh) throw new UnauthorizedException('No refresh cookie');
+
+    const { accessToken /*, refreshToken*/ } =
+      await this.authService.verifyRefreshAndIssueNewAccess(refresh);
+
+    // If rotating:
+    // if (refreshToken) {
+    //   res.cookie('refresh_token', refreshToken, {
+    //     httpOnly: true,
+    //     secure: true,
+    //     sameSite: 'lax',
+    //     path: '/auth',
+    //   });
+    // }
+
+    return { success: true, data: { accessToken } };
+  }
+
+  @Roles('user')
   @Get('me')
   async me(@CurrentUser() user: User) {
+    Logger.log('Getting user:', user.id);
     return this.usersService.getSafeUserById(user.id);
   }
 
@@ -75,9 +123,14 @@ export class UsersController {
     return this.usersService.getRecentLiabilityClaim(user.id);
   }
 
+  @Roles('user')
   @Post('logout')
-  async logout(@CurrentUser() user: User, @AuthToken() token: string) {
-    Logger.log('Logging out user:', user.id);
+  async logout(
+    @CurrentUser() user: User,
+    @AuthToken() token: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    res.clearCookie('refresh_token', { path: '/' });
     return this.usersService.logout(user.id, token);
   }
 }

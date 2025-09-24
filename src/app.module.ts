@@ -12,6 +12,7 @@ import { AuthCoreModule } from './common/auth/auth.module';
 import { CalculatorProgressModule } from './calculator-progress/calculator-progress.module';
 import { UserDashboardModule } from './user-dashboard/user-dashboard.module';
 import { AdminAuthModule } from './admin/auth/admin-auth.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AdminAuthModule } from './admin/auth/admin-auth.module';
     CalculatorProgressModule,
     UserDashboardModule,
     AdminAuthModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

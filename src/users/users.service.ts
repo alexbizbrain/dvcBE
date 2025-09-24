@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
@@ -180,6 +181,7 @@ export class UsersService {
   }
 
   async getSafeUserById(id: string) {
+    Logger.log('Getting user by id:', id);
     const user = await this.prismaService.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
     return this.toSafeUser(user);
