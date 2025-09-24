@@ -17,6 +17,7 @@ import { AuthService } from 'src/auth/auth.service';
 import { CurrentUser } from 'src/common/auth/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 import { AuthToken } from 'src/common/auth/decorators/auth-token.decorator';
+import { Roles } from 'src/common/auth/decorators/roles.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -65,11 +66,14 @@ export class UsersController {
     };
   }
 
+  @Roles('user')
   @Get('me')
   async me(@CurrentUser() user: User) {
+    Logger.log('Getting user:', user.id);
     return this.usersService.getSafeUserById(user.id);
   }
 
+  @Roles('user')
   @Post('logout')
   async logout(@CurrentUser() user: User, @AuthToken() token: string) {
     Logger.log('Logging out user:', user.id);
