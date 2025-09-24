@@ -70,6 +70,11 @@ export class UsersController {
     return this.usersService.getSafeUserById(user.id);
   }
 
+  @Get('recent-liability-claim')
+  async getRecentLiabilityClaim(@CurrentUser() user: User) {
+    return this.usersService.getRecentLiabilityClaim(user.id);
+  }
+
   @Post('logout')
   async logout(@CurrentUser() user: User, @AuthToken() token: string) {
     Logger.log('Logging out user:', user.id);

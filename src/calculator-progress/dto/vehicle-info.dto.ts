@@ -20,4 +20,12 @@ export class VehicleInfoDto {
   @IsOptional()
   @IsString()
   mileage?: string;
+
+  @IsOptional()
+  @IsString()
+  repairCost?: string;
+
+  @IsOptional()
+  @IsString()
+  approximateCarPrice?: string;
 }

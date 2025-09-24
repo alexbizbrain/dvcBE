@@ -44,4 +44,28 @@ export class InsuranceInfoDto {
   @IsOptional()
   @IsString()
   driverCountryCode?: string;
+
+  @IsOptional()
+  @IsString()
+  autoInsuranceCardFileName?: string;
+
+  @IsOptional()
+  @IsString()
+  autoInsuranceCardFileUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  driverLicenseFrontFileName?: string;
+
+  @IsOptional()
+  @IsString()
+  driverLicenseFrontFileUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  driverLicenseBackFileName?: string;
+
+  @IsOptional()
+  @IsString()
+  driverLicenseBackFileUrl?: string;
 }

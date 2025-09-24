@@ -1,13 +1,24 @@
+import { ClaimStatus } from '@prisma/client';
 import { Transform } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+  IsEnum,
+  IsArray,
+} from 'class-validator';
 
 export class GetClaimsQueryDto {
   @IsOptional()
-  @Transform(({ value }) =>
-    Array.isArray(value) ? value : value?.split(',')?.map(String),
-  )
-  @IsString({ each: true })
-  status?: string[]; // e.g. ?status=draft,completed
+  @IsArray()
+  @IsEnum(ClaimStatus, { each: true })
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return [value];
+    return undefined;
+  })
+  status?: ClaimStatus[];
 
   @IsOptional()
   @IsString()
