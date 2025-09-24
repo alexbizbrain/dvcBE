@@ -27,11 +27,13 @@ export class LiabilityClaimsController {
     return this.liabilityClaimsService.create(createLiabilityClaimDto);
   }
 
+  @Public()
   @Get()
   list(@Query() query: ListLiabilityClaimDto) {
     return this.liabilityClaimsService.list(query);
   }
 
+  @Public()
   @Get(':id')
   get(@Param('id') id: string) {
     return this.liabilityClaimsService.getById(id);
