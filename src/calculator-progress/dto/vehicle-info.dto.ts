@@ -23,9 +23,5 @@ export class VehicleInfoDto {
 
   @IsOptional()
   @IsString()
-  repairCost?: string;
-
-  @IsOptional()
-  @IsString()
   approximateCarPrice?: string;
 }

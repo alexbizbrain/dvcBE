@@ -16,6 +16,10 @@ export class AccidentInfoDto {
 
   @IsOptional()
   @IsString()
+  repairCost?: string;
+
+  @IsOptional()
+  @IsString()
   repairInvoiceFileName?: string;
 
   @IsOptional()
@@ -25,4 +29,7 @@ export class AccidentInfoDto {
   @IsOptional()
   @IsString()
   nextAction?: string;
+
+  @IsOptional()
+  hasRepairEstimate?: boolean;
 }
