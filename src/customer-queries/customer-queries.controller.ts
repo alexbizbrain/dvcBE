@@ -15,6 +15,8 @@ import { CreateCustomerQueryDto } from './dto/create-customer-query.dto';
 import { ListCustomerQueryDto } from './dto/list-customer-query.dto';
 import { Roles } from 'src/common/auth/decorators/roles.decorator';
 import { UpdateCustomerQueryDto } from './dto/update-customer-query.dto';
+import { CurrentUser } from 'src/common/auth/decorators/current-user.decorator';
+import type { User } from '@prisma/client';
 import { Public } from 'src/common/auth/decorators/public.decorator';
 
 @Controller('customer-queries')
@@ -26,9 +28,19 @@ export class CustomerQueriesController {
 
   @Public()
   @Post()
-  async create(@Body() dto: CreateCustomerQueryDto) {
+  async createPublic(@Body() dto: CreateCustomerQueryDto) {
     if (!dto.countryCode) dto.countryCode = '+1';
-    return this.customerQueriesService.create(dto);
+    // Public submission without user context
+    return this.customerQueriesService.create(null, dto);
+  }
+
+  @Post('me')
+  async createForAuthenticated(
+    @CurrentUser() user: User,
+    @Body() dto: CreateCustomerQueryDto,
+  ) {
+    if (!dto.countryCode) dto.countryCode = '+1';
+    return this.customerQueriesService.create(user?.id, dto);
   }
 
   @Get()

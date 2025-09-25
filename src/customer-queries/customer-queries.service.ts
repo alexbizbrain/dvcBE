@@ -9,17 +9,49 @@ import { UpdateCustomerQueryDto } from './dto/update-customer-query.dto';
 export class CustomerQueriesService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async create(dto: CreateCustomerQueryDto) {
-    return this.prismaService.customerQuery.create({
-      data: {
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        email: dto.email,
-        phoneNumber: dto.phoneNumber,
-        countryCode: dto.countryCode ?? '+1',
-        message: dto.message,
-      },
-    });
+  async create(userId: string | undefined | null, dto: CreateCustomerQueryDto) {
+    if (userId) {
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phoneNumber: true,
+          countryCode: true,
+        },
+      });
+      if (!user) throw new NotFoundException('User not found');
+
+      const phoneNumber = dto.phoneNumber ?? user.phoneNumber ?? null;
+      const countryCode = dto.countryCode ?? user.countryCode ?? '+1';
+
+      return this.prismaService.customerQuery.create({
+        data: {
+          message: dto.message,
+          firstName: user.firstName ?? dto.firstName ?? '',
+          lastName: user.lastName ?? dto.lastName ?? '',
+          email: user.email ?? dto.email ?? '',
+          phoneNumber,
+          countryCode,
+          user: { connect: { id: user.id } },
+        },
+      });
+    } else {
+      return this.prismaService.customerQuery.create({
+        data: {
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          email: dto.email,
+          phoneNumber: dto.phoneNumber,
+          countryCode: dto.countryCode ?? '+1',
+          message: dto.message,
+        },
+      });
+    }
   }
 
   async list({ page = 1, limit = 10, q }: ListCustomerQueryDto) {
