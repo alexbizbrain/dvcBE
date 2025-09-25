@@ -6,7 +6,7 @@ import { ClaimStatus } from '@prisma/client';
 
 @Injectable()
 export class CalculatorProgressService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getProgress(
     userId: string,
@@ -67,6 +67,15 @@ export class CalculatorProgressService {
       (existingDraft.accidentInfo as any).hitAndRun
     ) {
       updateData.status = ClaimStatus.DISQUALIFIED;
+    }
+
+    // Check if hasRepairEstimate is false and set status to REPAIR_COST_PENDING
+    if (
+      data.accidentInfo &&
+      typeof data.accidentInfo === 'object' &&
+      data.accidentInfo.hasRepairEstimate === false
+    ) {
+      updateData.status = ClaimStatus.REPAIR_COST_PENDING;
     }
 
     // Handle JSON field updates
@@ -243,16 +252,17 @@ export class CalculatorProgressService {
         model: vehicleInfo.model || vehicleInfo.vehicleModel,
         vin: vehicleInfo.vin || vehicleInfo.vehicleVin,
         mileage: vehicleInfo.mileage || vehicleInfo.vehicleMileage,
-        repairCost: vehicleInfo.repairCost,
         approximateCarPrice: vehicleInfo.approximateCarPrice,
       },
       accidentInfo: {
         accidentDate: accidentInfo.accidentDate,
         isAtFault: accidentInfo.isAtFault,
         isRepaired: accidentInfo.isRepaired,
+        repairCost: accidentInfo.repairCost,
         repairInvoiceFileName: accidentInfo.repairInvoiceFileName,
         repairInvoiceFileUrl: accidentInfo.repairInvoiceFileUrl,
         nextAction: accidentInfo.nextAction,
+        hasRepairEstimate: accidentInfo.hasRepairEstimate,
       },
       insuranceInfo: {
         yourInsurance: insuranceInfo.yourInsurance,
