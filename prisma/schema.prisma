@@ -53,6 +53,7 @@ model User {
   role            Role      @relation(fields: [roleId], references: [id])
   liabilityClaims LiabilityClaim[]
   claims          Claim[]
+  customerQueries CustomerQuery[]
 
   @@map("users")
 }
@@ -99,7 +100,10 @@ model CustomerQuery {
   message     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  userId String?
+  user   User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([userId, createdAt])
   @@map("customer_queries")
 }
 
