@@ -21,6 +21,11 @@ enum ClaimStatus {
   CLOSED
 }
 
+enum InsuranceType {
+  AUTO
+  COMMERCIAL_AUTO
+}
+
 model Role {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -148,12 +153,36 @@ model Claim {
 }
 
 model InsuranceCompany {
-  id           Int      @id @default(autoincrement())
-  name         String
+  id        String   @id @default(cuid())
+  companyName String @map("name")
   contactEmail String
-  addedBy      String   // e.g. "system" | "user"
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  naic String?
+  insuranceType InsuranceType
+  websiteUrl String?
+  companyLicensed Json?
+  companyInformation String?
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyName, insuranceType], name: "insurance_company_unique")
+  @@index([insuranceType], name: "idx_insurance_company_type")
   @@map("insurance_companies")
+}
+
+model DVCCConfiguration {
+  id String @id @default(cuid())
+  minApproxCarPrice         Decimal   @default(0)
+  maxApproxCarPrice         Decimal   @default(100000000)
+  minApproxCarPriceActive   Boolean   @default(false)
+  maxApproxCarPriceActive   Boolean   @default(false)
+  minTotalRepairCost        Decimal? 
+  minTotalRepairCostActive  Boolean   @default(false)
+  maxTotalRepairCost        Decimal?
+  maxTotalRepairCostActive  Boolean   @default(false)
+  contingencyPlanPercentage Decimal?  @db.Decimal(5, 2)
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@map("dvcc_configurations")
 }
