@@ -87,6 +87,7 @@ export class ClaimsService {
     } = q;
 
     const where: Prisma.ClaimWhereInput = {
+      // Use provided status filter; otherwise default to excluding DISQUALIFIED
       ...(status?.length
         ? { status: { in: status } }
         : { status: { not: ClaimStatus.DISQUALIFIED } }),
