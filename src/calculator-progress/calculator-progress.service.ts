@@ -71,6 +71,7 @@ export class CalculatorProgressService {
 
     // Check if hasRepairEstimate is false and set status to REPAIR_COST_PENDING
     if (
+      data.currentStep === 2 &&
       data.accidentInfo &&
       typeof data.accidentInfo === 'object' &&
       data.accidentInfo.hasRepairEstimate === false
@@ -263,6 +264,7 @@ export class CalculatorProgressService {
         repairInvoiceFileUrl: accidentInfo.repairInvoiceFileUrl,
         nextAction: accidentInfo.nextAction,
         hasRepairEstimate: accidentInfo.hasRepairEstimate,
+        hitAndRun: accidentInfo.hitAndRun,
       },
       insuranceInfo: {
         yourInsurance: insuranceInfo.yourInsurance,
@@ -290,7 +292,6 @@ export class CalculatorProgressService {
       },
       liabilityInfo: {
         isAtFault: claim.liabilityInfo?.isAtFault,
-        state: claim.liabilityInfo?.state,
         accidentState: claim.liabilityInfo?.accidentState,
       },
       createdAt: claim.createdAt,
