@@ -12,7 +12,7 @@ export class UserDashboardService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly _calculatorProgressService: CalculatorProgressService,
-  ) {}
+  ) { }
 
   async listForUser(userId: string, q: GetClaimsQueryDto) {
     const { status, sortBy, sortOrder, page = 1, limit = 10 } = q;
@@ -25,8 +25,8 @@ export class UserDashboardService {
     const orderBy: Prisma.ClaimOrderByWithRelationInput =
       sortBy && sortOrder
         ? {
-            [sortBy]: sortOrder,
-          }
+          [sortBy]: sortOrder,
+        }
         : { createdAt: 'desc' };
 
     const skip = (page - 1) * limit;
@@ -70,8 +70,6 @@ export class UserDashboardService {
 
     const ACTIVE_STATUSES: ClaimStatus[] = [
       ClaimStatus.INPROGRESS,
-      ClaimStatus.ESTIMATES_COLLECTED,
-      ClaimStatus.REPAIR_COMPLETED,
       ClaimStatus.DV_CLAIM_CREATED,
       ClaimStatus.SUBMITTED_TO_INSURER,
       ClaimStatus.NEGOTIATION,
@@ -123,8 +121,6 @@ export class UserDashboardService {
   async getActiveClaim(userId: string) {
     const ACTIVE_STATUSES: ClaimStatus[] = [
       ClaimStatus.INPROGRESS,
-      ClaimStatus.ESTIMATES_COLLECTED,
-      ClaimStatus.REPAIR_COMPLETED,
       ClaimStatus.DV_CLAIM_CREATED,
       ClaimStatus.SUBMITTED_TO_INSURER,
       ClaimStatus.NEGOTIATION,
@@ -350,8 +346,8 @@ export class UserDashboardService {
         // Allow hosted URLs (http/https) and inline data URLs (data:image)
         signatureDataUrl:
           typeof pp.signatureDataUrl === 'string' &&
-          (pp.signatureDataUrl.startsWith('http') ||
-            pp.signatureDataUrl.startsWith('data:'))
+            (pp.signatureDataUrl.startsWith('http') ||
+              pp.signatureDataUrl.startsWith('data:'))
             ? pp.signatureDataUrl
             : null,
         estimatedAmount,
