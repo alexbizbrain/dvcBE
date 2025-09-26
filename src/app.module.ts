@@ -13,6 +13,7 @@ import { CalculatorProgressModule } from './calculator-progress/calculator-progr
 import { UserDashboardModule } from './user-dashboard/user-dashboard.module';
 import { AdminAuthModule } from './admin/auth/admin-auth.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { ClaimsModule } from './admin/claims/claims.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     UserDashboardModule,
     AdminAuthModule,
     ReviewsModule,
+    ClaimsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

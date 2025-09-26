@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CalculatorProgressService } from 'src/calculator-progress/calculator-progress.service';
 import { GetClaimsQueryDto } from './dto/claims-query.dto';
 import { ClaimStatus, Prisma } from '@prisma/client';
 import { DashboardStatsDto } from './dto/dashboard-stats.dto';
 import { DocumentDto } from './dto/document.dto';
+import { UserClaimViewDto } from './dto/user-claim-view.dto';
 
 @Injectable()
 export class UserDashboardService {
@@ -190,6 +191,18 @@ export class UserDashboardService {
     };
   }
 
+  async getClaimById(
+    userId: string,
+    claimId: string,
+  ): Promise<UserClaimViewDto> {
+    const claim = await this.prismaService.claim.findFirst({
+      where: { id: claimId, userId },
+    });
+    if (!claim) throw new NotFoundException('Claim not found');
+
+    return this.mapToUserView(claim);
+  }
+
   private extractDocumentsFromClaim(
     claimId: string,
     status: ClaimStatus,
@@ -251,5 +264,104 @@ export class UserDashboardService {
   private toStringOrNull(v: unknown): string | null {
     if (typeof v === 'string' && v.trim()) return v;
     return null;
+  }
+
+  private mapToUserView(claim: any): UserClaimViewDto {
+    const vi = claim.vehicleInfo ?? {};
+    const ai = claim.accidentInfo ?? {};
+    const ii = claim.insuranceInfo ?? {};
+    const pp = claim.pricingPlan ?? {};
+    const li = claim.liabilityInfo ?? {};
+
+    const toNumber = (v: unknown): number | null => {
+      if (v == null) return null;
+      if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+      if (typeof v === 'string') {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      }
+      return null;
+    };
+
+    const estimatedAmount =
+      toNumber(pp.estimatedAmount) ??
+      toNumber(pp.dvEstimate) ??
+      toNumber(vi.repairCost) ??
+      null;
+
+    const documents = this.extractDocumentsFromClaim(
+      claim.id,
+      claim.status,
+      claim.updatedAt,
+      {
+        accidentInfo: claim.accidentInfo,
+        insuranceInfo: claim.insuranceInfo,
+        pricingPlan: claim.pricingPlan,
+      },
+    );
+
+    return {
+      id: claim.id,
+      currentStep: claim.currentStep,
+      status: claim.status,
+      lastAccessedAt: claim.lastAccessedAt,
+      createdAt: claim.createdAt,
+      updatedAt: claim.updatedAt,
+      vehicleInfo: {
+        year: vi.year ?? vi.vehicleYear,
+        make: vi.make ?? vi.vehicleMake,
+        model: vi.model ?? vi.vehicleModel,
+        vin: vi.vin ?? vi.vehicleVin,
+        mileage: vi.mileage ?? vi.vehicleMileage,
+        repairCost: toNumber(vi.repairCost),
+        approximateCarPrice: vi.approximateCarPrice,
+      },
+      accidentInfo: {
+        accidentDate: ai.accidentDate,
+        isAtFault: ai.isAtFault,
+        isRepaired: ai.isRepaired,
+        repairInvoiceFileName: ai.repairInvoiceFileName,
+        repairInvoiceFileUrl: ai.repairInvoiceFileUrl,
+        nextAction: ai.nextAction,
+        hitAndRun: ai.hitAndRun,
+      },
+      insuranceInfo: {
+        yourInsurance: ii.yourInsurance,
+        claimNumber: ii.claimNumber,
+        atFaultInsurance: ii.atFaultInsurance,
+        adjusterName: ii.adjusterName,
+        adjusterEmail: ii.adjusterEmail,
+        adjusterPhone: ii.adjusterPhone,
+        adjusterCountryCode: ii.adjusterCountryCode,
+        driverName: ii.driverName,
+        driverEmail: ii.driverEmail,
+        driverPhone: ii.driverPhone,
+        driverCountryCode: ii.driverCountryCode,
+        autoInsuranceCardFileName: ii.autoInsuranceCardFileName,
+        autoInsuranceCardFileUrl: ii.autoInsuranceCardFileUrl,
+        driverLicenseFrontFileName: ii.driverLicenseFrontFileName,
+        driverLicenseFrontFileUrl: ii.driverLicenseFrontFileUrl,
+        driverLicenseBackFileName: ii.driverLicenseBackFileName,
+        driverLicenseBackFileUrl: ii.driverLicenseBackFileUrl,
+      },
+      pricingPlan: {
+        selectedPlan: pp.selectedPlan,
+        agreedToTerms: !!pp.agreedToTerms,
+        // Allow hosted URLs (http/https) and inline data URLs (data:image)
+        signatureDataUrl:
+          typeof pp.signatureDataUrl === 'string' &&
+          (pp.signatureDataUrl.startsWith('http') ||
+            pp.signatureDataUrl.startsWith('data:'))
+            ? pp.signatureDataUrl
+            : null,
+        estimatedAmount,
+      },
+      liabilityInfo: {
+        isAtFault: li.isAtFault ?? ai.isAtFault,
+        state: li.state,
+        accidentState: li.accidentState,
+      },
+      documents,
+    };
   }
 }
