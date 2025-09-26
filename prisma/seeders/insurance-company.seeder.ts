@@ -1,58 +1,75 @@
 import { Seeder } from './seeder.interface';
-import { PrismaClient } from '@prisma/client';
+import { InsuranceCompany, PrismaClient } from '@prisma/client';
+import { InsuranceType } from '@prisma/client';
 
-const sampleInsuranceCompanies = [
+const companies: InsuranceCompany[] = [
   {
-    name: 'Allstate',
-    contactEmail: 'customerservice@allstate.com',  // Example / placeholder
-    addedBy: 'system',
+    companyName: 'GEICO',
+    contactEmail: 'support@geico.com',
+    insuranceType: InsuranceType.AUTO,
+    naic: '35882',
+    websiteUrl: 'https://www.geico.com',
+    id: '',
+    companyLicensed: null,
+    companyInformation: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
-    name: 'GEICO',
-    contactEmail: 'overseas@geico.com',  // Found on GEICO site for overseas contact :contentReference[oaicite:0]{index=0}
-    addedBy: 'system',
+    companyName: 'State Farm',
+    contactEmail: 'support@statefarm.com',
+    insuranceType: InsuranceType.AUTO,
+    naic: '25178',
+    websiteUrl: 'https://www.statefarm.com',
+    id: '',
+    companyLicensed: null,
+    companyInformation: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
-    name: 'Liberty Mutual',
-    contactEmail: 'customerservice@libertymutual.com',  // Example / placeholder
-    addedBy: 'system',
+    companyName: 'Progressive',
+    contactEmail: 'support@progressive.com',
+    insuranceType: InsuranceType.AUTO,
+    naic: '24260',
+    websiteUrl: 'https://www.progressive.com',
+    id: '',
+    companyLicensed: null,
+    companyInformation: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
-  {
-    name: 'Progressive',
-    contactEmail: 'general_inquiry@progressive.com',  // Example / placeholder
-    addedBy: 'system',
-  },
-  {
-    name: 'The Hartford',
-    contactEmail: 'customer_service@thehartford.com',  // Example / placeholder
-    addedBy: 'system',
-  },
-  {
-    name: 'Mercury Insurance',
-    contactEmail: 'customerservice@mercuryinsurance.com', // Example / placeholder
-    addedBy: 'system',
-  },
+  // add more as needed...
 ];
 
 export class InsuranceCompanySeeder implements Seeder {
   async run(prisma: PrismaClient): Promise<void> {
     console.log('Seeding insurance companies...');
 
-    for (const ic of sampleInsuranceCompanies) {
-      const existing = await prisma.insuranceCompany.findFirst({
+    for (const ic of companies) {
+      await prisma.insuranceCompany.upsert({
         where: {
-          name: ic.name,
+          id: ic.id,
+          companyName: ic.companyName,
+          insuranceType: ic.insuranceType,
+        },
+        update: {
+          contactEmail: ic.contactEmail,
+          naic: ic.naic ?? null,
+          websiteUrl: ic.websiteUrl ?? null,
+          companyLicensed: ic.companyLicensed ?? undefined,
+          companyInformation: ic.companyInformation ?? undefined,
+        },
+        create: {
+          companyName: ic.companyName,
+          contactEmail: ic.contactEmail,
+          insuranceType: ic.insuranceType,
+          naic: ic.naic ?? null,
+          websiteUrl: ic.websiteUrl ?? null,
+          companyLicensed: ic.companyLicensed ?? undefined,
+          companyInformation: ic.companyInformation ?? null,
         },
       });
-
-      if (existing) {
-        await prisma.insuranceCompany.update({
-          where: { id: existing.id },
-          data: ic,
-        });
-      } else {
-        await prisma.insuranceCompany.create({ data: ic });
-      }
     }
 
     console.log('✅ Insurance companies seeded successfully!');
