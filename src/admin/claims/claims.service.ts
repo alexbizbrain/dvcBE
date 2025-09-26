@@ -254,7 +254,12 @@ export class ClaimsService {
 
     const [items, total] = await this.prismaService.$transaction([
       this.prismaService.claim.findMany({
-        where,
+        where: {
+          ...where,
+          status: {
+            not: ClaimStatus.DISQUALIFIED,
+          },
+        },
         orderBy,
         skip,
         take,
@@ -270,7 +275,14 @@ export class ClaimsService {
           },
         },
       }),
-      this.prismaService.claim.count({ where }),
+      this.prismaService.claim.count({
+        where: {
+          ...where,
+          status: {
+            not: ClaimStatus.DISQUALIFIED,
+          },
+        },
+      }),
     ]);
 
     return {
