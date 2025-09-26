@@ -55,6 +55,7 @@ const ALLOWED_TRANSITIONS: Record<ClaimStatus, ClaimStatus[]> = {
   CLAIM_SETTLED: [ClaimStatus.CLAIM_PAID, ClaimStatus.CLOSED],
   CLAIM_PAID: [ClaimStatus.CLOSED],
   CLOSED: [],
+  REPAIR_COST_PENDING: [],
 };
 
 @Injectable()
@@ -82,10 +83,13 @@ export class ClaimsService {
       updatedTo,
       page = 1,
       limit = 10,
+      userId,
     } = q;
 
     const where: Prisma.ClaimWhereInput = {
-      ...(status?.length ? { status: { in: status } } : {}),
+      ...(status?.length
+        ? { status: { in: status } }
+        : { status: { not: ClaimStatus.DISQUALIFIED } }),
       ...(steps?.length ? { currentStep: { in: steps } } : {}),
       ...(createdFrom || createdTo
         ? {
@@ -243,6 +247,7 @@ export class ClaimsService {
             }
           : {}),
       },
+      ...(userId ? { userId: { equals: userId } } : {}),
     };
 
     const orderBy: Prisma.ClaimOrderByWithRelationInput = {
@@ -254,12 +259,7 @@ export class ClaimsService {
 
     const [items, total] = await this.prismaService.$transaction([
       this.prismaService.claim.findMany({
-        where: {
-          ...where,
-          status: {
-            not: ClaimStatus.DISQUALIFIED,
-          },
-        },
+        where,
         orderBy,
         skip,
         take,
@@ -276,12 +276,7 @@ export class ClaimsService {
         },
       }),
       this.prismaService.claim.count({
-        where: {
-          ...where,
-          status: {
-            not: ClaimStatus.DISQUALIFIED,
-          },
-        },
+        where,
       }),
     ]);
 
