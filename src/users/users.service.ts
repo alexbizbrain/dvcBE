@@ -263,10 +263,10 @@ export class UsersService {
     const insuranceCompanies = await this.prismaService.insuranceCompany.findMany({
       select: {
         id: true,
-        name: true,
+        companyName: true,
       },
       orderBy: {
-        name: 'asc',
+        companyName: 'asc',
       },
     });
 
