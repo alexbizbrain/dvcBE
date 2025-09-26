@@ -28,7 +28,7 @@ export class UsersService {
     private emailService: EmailService,
     private smsService: SmsService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   private toSafeUser(user: User): SafeUser {
     return {
@@ -257,5 +257,22 @@ export class UsersService {
   private generateOtp(): string {
     // cryptographically stronger 6-digit OTP
     return String(randomInt(0, 1_000_000)).padStart(6, '0');
+  }
+
+  async getInsuranceCompanies() {
+    const insuranceCompanies = await this.prismaService.insuranceCompany.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    return {
+      success: true,
+      data: insuranceCompanies,
+    };
   }
 }

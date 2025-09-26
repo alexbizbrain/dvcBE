@@ -1,3 +1,4 @@
+
 import {
   Controller,
   Post,
@@ -27,7 +28,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly authService: AuthService,
-  ) {}
+  ) { }
 
   @Public()
   @Post('check')
@@ -132,5 +133,11 @@ export class UsersController {
   ) {
     res.clearCookie('refresh_token', { path: '/' });
     return this.usersService.logout(user.id, token);
+  }
+
+  @Roles('user')
+  @Get('insurance-companies')
+  async getInsuranceCompanies() {
+    return this.usersService.getInsuranceCompanies();
   }
 }
