@@ -1,11 +1,9 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, ClaimStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from 'src/users/users.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EnsureUserResult } from './types/liability-claim.type';
-import { ListLiabilityClaimDto } from './dto/list-liability-claim.dto';
 import { CreateLiabilityClaimDto } from './dto/create-liability-claim.dto';
-import { UpdateLiabilityClaimDto } from './dto/update-liability-claim.dto';
 
 type OtpNotify = { channel: 'email' | 'phone'; contact: string; code: string };
 
@@ -66,19 +64,19 @@ export class LiabilityClaimsService {
             countryCode,
           );
 
-          const claim = await tx.liabilityClaim.create({
+          // Create claim directly instead of liability claim
+          const claim = await tx.claim.create({
             data: {
-              email: dto.email ?? null,
-              phoneNumber: dto.phoneNumber ?? null,
-              countryCode:
-                typeof countryCode === 'string'
-                  ? countryCode.toLowerCase()
-                  : countryCode,
-              atFaultDriver: dto.atFaultDriver,
-              state: dto.state,
-              agreeToEmails: dto.agreeToEmails ?? false,
-              agreeToSms: dto.agreeToSms ?? false,
-              user: { connect: { id: ensuredUser.id! } },
+              userId: ensuredUser.id!,
+              status: ClaimStatus.INPROGRESS,
+              currentStep: 1, // Start at step 2 since we have liability data
+              lastAccessedAt: new Date(),
+              // Pre-fill liability info from the payload
+              liabilityInfo: {
+                isAtFault: dto.atFaultDriver,
+                state: dto.state,
+                accidentState: dto.state, // Assuming same state for accident
+              },
             },
           });
 
@@ -129,7 +127,7 @@ export class LiabilityClaimsService {
       }
 
       return {
-        claim,
+        claim: this.mapClaimToResponse(claim),
         user: ensuredUser.id
           ? { id: ensuredUser.id, existed: ensuredUser.existed }
           : null,
@@ -142,76 +140,68 @@ export class LiabilityClaimsService {
     }
   }
 
-  async list({
-    page = 1,
-    limit = 10,
-    q,
-    state,
-    countryCode,
-    atFaultDriver,
-    agreeToEmails,
-    agreeToSms,
-  }: ListLiabilityClaimDto) {
-    const skip = (page - 1) * limit;
-    const where: Prisma.LiabilityClaimWhereInput = {};
-    if (q) {
-      where.OR = [
-        { email: { contains: q, mode: 'insensitive' } },
-        { phoneNumber: { contains: q, mode: 'insensitive' } },
-      ];
-    }
-    if (state) where.state = { contains: state, mode: 'insensitive' };
-    if (countryCode) where.countryCode = countryCode.toLowerCase();
-    if (typeof atFaultDriver === 'boolean') where.atFaultDriver = atFaultDriver;
-    if (typeof agreeToEmails === 'boolean') where.agreeToEmails = agreeToEmails;
-    if (typeof agreeToSms === 'boolean') where.agreeToSms = agreeToSms;
 
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.liabilityClaim.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.liabilityClaim.count({ where }),
-    ]);
+  private mapClaimToResponse(claim: any) {
+    // Extract JSON data with fallback to empty objects
+    const vehicleInfo = claim.vehicleInfo || {};
+    const accidentInfo = claim.accidentInfo || {};
+    const insuranceInfo = claim.insuranceInfo || {};
+    const pricingPlan = claim.pricingPlan || {};
 
-    return { items, page, limit, total };
-  }
-
-  async getById(id: string) {
-    const found = await this.prisma.liabilityClaim.findUnique({
-      where: { id },
-    });
-    if (!found) throw new NotFoundException('Liability claim not found');
-    return found;
-  }
-
-  async update(id: string, dto: UpdateLiabilityClaimDto) {
-    try {
-      return await this.prisma.liabilityClaim.update({
-        where: { id },
-        data: {
-          email: dto.email,
-          phoneNumber: dto.phoneNumber,
-          countryCode: dto.countryCode?.toLowerCase(),
-          atFaultDriver: dto.atFaultDriver,
-          state: dto.state,
-          agreeToEmails: dto.agreeToEmails,
-          agreeToSms: dto.agreeToSms,
-        },
-      });
-    } catch {
-      throw new NotFoundException('Liability claim not found');
-    }
-  }
-
-  async remove(id: string) {
-    try {
-      await this.prisma.liabilityClaim.delete({ where: { id } });
-      return { id, deleted: true };
-    } catch {
-      throw new NotFoundException('Liability claim not found');
-    }
+    return {
+      id: claim.id,
+      currentStep: claim.currentStep,
+      isSubmitted: claim.status === ClaimStatus.DV_CLAIM_CREATED,
+      status: claim.status,
+      lastAccessedAt: claim.lastAccessedAt,
+      vehicleInfo: {
+        year: vehicleInfo.year || vehicleInfo.vehicleYear,
+        make: vehicleInfo.make || vehicleInfo.vehicleMake,
+        model: vehicleInfo.model || vehicleInfo.vehicleModel,
+        vin: vehicleInfo.vin || vehicleInfo.vehicleVin,
+        mileage: vehicleInfo.mileage || vehicleInfo.vehicleMileage,
+        approximateCarPrice: vehicleInfo.approximateCarPrice,
+      },
+      accidentInfo: {
+        accidentDate: accidentInfo.accidentDate,
+        isAtFault: accidentInfo.isAtFault,
+        isRepaired: accidentInfo.isRepaired,
+        repairCost: accidentInfo.repairCost,
+        repairInvoiceFileName: accidentInfo.repairInvoiceFileName,
+        repairInvoiceFileUrl: accidentInfo.repairInvoiceFileUrl,
+        nextAction: accidentInfo.nextAction,
+        hasRepairEstimate: accidentInfo.hasRepairEstimate,
+      },
+      insuranceInfo: {
+        yourInsurance: insuranceInfo.yourInsurance,
+        claimNumber: insuranceInfo.claimNumber,
+        atFaultInsurance: insuranceInfo.atFaultInsurance,
+        adjusterName: insuranceInfo.adjusterName,
+        adjusterEmail: insuranceInfo.adjusterEmail,
+        adjusterPhone: insuranceInfo.adjusterPhone,
+        adjusterCountryCode: insuranceInfo.adjusterCountryCode,
+        driverName: insuranceInfo.driverName,
+        driverEmail: insuranceInfo.driverEmail,
+        driverPhone: insuranceInfo.driverPhone,
+        driverCountryCode: insuranceInfo.driverCountryCode,
+        autoInsuranceCardFileName: accidentInfo.autoInsuranceCardFileName,
+        driverLicenseFrontFileName: accidentInfo.driverLicenseFrontFileName,
+        autoInsuranceCardFileUrl: accidentInfo.autoInsuranceCardFileUrl,
+        driverLicenseFrontFileUrl: accidentInfo.driverLicenseFrontFileUrl,
+        driverLicenseBackFileName: accidentInfo.driverLicenseBackFileName,
+        driverLicenseBackFileUrl: accidentInfo.driverLicenseBackFileUrl,
+      },
+      pricingPlan: {
+        selectedPlan: pricingPlan.selectedPlan,
+        agreedToTerms: pricingPlan.agreedToTerms,
+        signatureDataUrl: pricingPlan.signatureDataUrl,
+      },
+      liabilityInfo: {
+        isAtFault: claim.liabilityInfo?.isAtFault,
+        accidentState: claim.liabilityInfo?.accidentState,
+      },
+      createdAt: claim.createdAt,
+      updatedAt: claim.updatedAt,
+    };
   }
 }
