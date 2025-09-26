@@ -4,6 +4,12 @@
   - The values [ESTIMATES_COLLECTED,REPAIR_COMPLETED] on the enum `ClaimStatus` will be removed. If these variants are still used in the database, this will fail.
 
 */
+
+-- First, update any existing records that use the problematic enum values
+UPDATE "public"."claims" 
+SET "status" = 'INPROGRESS' 
+WHERE "status" IN ('ESTIMATES_COLLECTED', 'REPAIR_COMPLETED');
+
 -- AlterEnum
 BEGIN;
 CREATE TYPE "public"."ClaimStatus_new" AS ENUM ('DISQUALIFIED', 'INPROGRESS', 'REPAIR_COST_PENDING', 'DV_CLAIM_CREATED', 'SUBMITTED_TO_INSURER', 'NEGOTIATION', 'FINAL_OFFER_MADE', 'CLAIM_SETTLED', 'CLAIM_PAID', 'CLOSED');
