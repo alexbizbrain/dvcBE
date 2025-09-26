@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { UserDashboardService } from './user-dashboard.service';
 import { CurrentUser } from 'src/common/auth/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
@@ -33,6 +33,13 @@ export class UserDashboardController {
   async listMine(@CurrentUser() user: User, @Query() q: GetClaimsQueryDto) {
     const userId = user.id;
     return this.userDashboardService.listForUser(userId, q);
+  }
+
+  @Get('claims/:id')
+  async getOneClaim(@CurrentUser() user: User, @Param('id') id: string) {
+    const userId: string = user.id;
+    const data = await this.userDashboardService.getClaimById(userId, id);
+    return { success: true, data };
   }
 
   @Get('documents/latest')
