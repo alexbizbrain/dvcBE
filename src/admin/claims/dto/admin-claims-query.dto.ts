@@ -120,11 +120,8 @@ export class AdminClaimsQueryDto {
   @IsInt()
   @Min(1)
   limit: number = 10;
-<<<<<<< HEAD
 
   @IsOptional()
   @IsString()
   userId?: string;
-=======
->>>>>>> 9d7d8fa37dbb0c236ac6fda491c7e754f3dbc6aa
 }
