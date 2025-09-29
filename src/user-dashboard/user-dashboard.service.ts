@@ -300,6 +300,7 @@ export class UserDashboardService {
       id: claim.id,
       currentStep: claim.currentStep,
       status: claim.status,
+      flow: claim.flow,
       lastAccessedAt: claim.lastAccessedAt,
       createdAt: claim.createdAt,
       updatedAt: claim.updatedAt,

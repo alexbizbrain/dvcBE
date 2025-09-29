@@ -13,7 +13,7 @@ import { AccidentInfoDto } from './accident-info.dto';
 import { InsuranceInfoDto } from './insurance-info.dto';
 import { PricingPlanDto } from './pricing-plan.dto';
 import { LiabilityInfoDto } from './liability-info.dto';
-import { ClaimStatus } from '@prisma/client';
+import { ClaimStatus, ClaimFlow } from '@prisma/client';
 
 export class SaveProgressDto {
   @IsOptional()
@@ -29,6 +29,10 @@ export class SaveProgressDto {
   @IsOptional()
   @IsBoolean()
   isSubmitted?: boolean;
+
+  @IsOptional()
+  @IsEnum(ClaimFlow)
+  flow?: ClaimFlow;
 
   @IsOptional()
   @ValidateNested()

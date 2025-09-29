@@ -3,13 +3,14 @@ import { InsuranceInfoDto } from './insurance-info.dto';
 import { PricingPlanDto } from './pricing-plan.dto';
 import { VehicleInfoDto } from './vehicle-info.dto';
 import { LiabilityInfoDto } from './liability-info.dto';
-import { ClaimStatus } from '@prisma/client';
+import { ClaimStatus, ClaimFlow } from '@prisma/client';
 
 export class CalculatorProgressResponseDto {
   id: string;
   currentStep: number;
   isSubmitted: boolean;
   status: ClaimStatus;
+  flow: ClaimFlow;
   lastAccessedAt: Date;
   vehicleInfo: VehicleInfoDto;
   accidentInfo: AccidentInfoDto;

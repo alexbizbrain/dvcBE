@@ -1,10 +1,11 @@
-import { ClaimStatus } from '@prisma/client';
+import { ClaimStatus, ClaimFlow } from '@prisma/client';
 import { DocumentDto } from './document.dto';
 
 export type UserClaimViewDto = {
   id: string;
   currentStep: number;
   status: ClaimStatus;
+  flow: ClaimFlow;
   lastAccessedAt: Date;
   createdAt: Date;
   updatedAt: Date;
