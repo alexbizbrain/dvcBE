@@ -6,7 +6,7 @@ import { ClaimStatus, ClaimFlow } from '@prisma/client';
 
 @Injectable()
 export class CalculatorProgressService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getProgress(
     userId: string,
@@ -62,6 +62,17 @@ export class CalculatorProgressService {
       typeof existingDraft?.liabilityInfo === 'object' &&
       existingDraft?.liabilityInfo !== null &&
       (existingDraft.liabilityInfo as any).isAtFault
+    ) {
+      updateData.status = ClaimStatus.DISQUALIFIED;
+    }
+
+    // Disqualify claims from New York and North Carolina
+    if (
+      data.currentStep === 2 &&
+      typeof existingDraft?.liabilityInfo === 'object' &&
+      existingDraft?.liabilityInfo !== null &&
+      ((existingDraft.liabilityInfo as any).accidentState === 'New York' ||
+        (existingDraft.liabilityInfo as any).accidentState === 'North Carolina')
     ) {
       updateData.status = ClaimStatus.DISQUALIFIED;
     }
