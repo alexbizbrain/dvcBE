@@ -15,6 +15,12 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { SmsService } from '../services/sms.service';
 import { ConfigService } from '@nestjs/config';
 
+interface GetInsuranceCompaniesParams {
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
 @Injectable()
 export class UsersService {
   private readonly OTP_TTL_MIN = 2; // code lives 2 minutes
@@ -242,20 +248,70 @@ export class UsersService {
     return String(randomInt(0, 1_000_000)).padStart(6, '0');
   }
 
-  async getInsuranceCompanies() {
-    const insuranceCompanies = await this.prismaService.insuranceCompany.findMany({
-      select: {
-        id: true,
-        companyName: true,
-      },
-      orderBy: {
-        companyName: 'asc',
-      },
-    });
+  // async getInsuranceCompanies() {
+  //   const insuranceCompanies = await this.prismaService.insuranceCompany.findMany({
+  //     select: {
+  //       id: true,
+  //       companyName: true,
+  //     },
+  //     orderBy: {
+  //       companyName: 'asc',
+  //     },
+  //   });
+
+  //   return {
+  //     success: true,
+  //     data: insuranceCompanies,
+  //   };
+  // }
+  async getInsuranceCompanies(params: GetInsuranceCompaniesParams = {}) {
+    const { search, page = 1, limit = 50 } = params;
+
+    // Calculate offset for pagination
+    const skip = (page - 1) * limit;
+
+    // Build where clause for search
+    const where = search
+      ? {
+        companyName: {
+          contains: search,
+          mode: 'insensitive' as const, // Case-insensitive search
+        },
+      }
+      : {};
+
+    // Execute queries in parallel for better performance
+    const [companies, total] = await Promise.all([
+      // Get paginated results
+      this.prismaService.insuranceCompany.findMany({
+        where,
+        select: {
+          id: true,
+          companyName: true,
+        },
+        orderBy: {
+          companyName: 'asc',
+        },
+        skip,
+        take: limit,
+      }),
+      // Get total count
+      this.prismaService.insuranceCompany.count({ where }),
+    ]);
+
+    // Calculate hasMore
+    const hasMore = skip + companies.length < total;
 
     return {
       success: true,
-      data: insuranceCompanies,
+      message: 'Insurance companies retrieved successfully',
+      data: {
+        companies,
+        total,
+        page,
+        limit,
+        hasMore,
+      },
     };
   }
 }

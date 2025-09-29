@@ -107,9 +107,18 @@ export class CalculatorProgressService {
     }
 
     if (data.insuranceInfo) {
+      // Handle custom insurance company creation on step 4
+      let processedInsuranceInfo = data.insuranceInfo;
+      if (data.currentStep === 4) {
+        processedInsuranceInfo = await this.handleCustomInsuranceCompany(
+          userId,
+          data.insuranceInfo,
+        );
+      }
+
       updateData.insuranceInfo = this.mergeJsonField(
         existingDraft?.insuranceInfo as any,
-        data.insuranceInfo,
+        processedInsuranceInfo,
       );
     }
 
@@ -305,5 +314,39 @@ export class CalculatorProgressService {
       createdAt: claim.createdAt,
       updatedAt: claim.updatedAt,
     };
+  }
+
+  private async handleCustomInsuranceCompany(
+    userId: string,
+    insuranceInfo: any,
+  ): Promise<any> {
+    // Check if yourInsurance has insuranceCompanyId as null and companyName is provided
+    if (
+      insuranceInfo?.yourInsurance &&
+      !insuranceInfo.yourInsurance.insuranceCompanyId &&
+      insuranceInfo.yourInsurance.companyName
+    ) {
+      // Create a new custom insurance company
+      const customInsuranceCompany = await this.prisma.insuranceCompany.create({
+        data: {
+          companyName: insuranceInfo.yourInsurance.companyName,
+          contactEmail: '', // Default empty email
+          insuranceType: 'AUTO', // Default to AUTO
+          type: 'CUSTOM',
+          userId: userId,
+        },
+      });
+
+      // Update the insuranceInfo to use the new company ID
+      return {
+        ...insuranceInfo,
+        yourInsurance: {
+          insuranceCompanyId: customInsuranceCompany.id,
+          companyName: customInsuranceCompany.companyName,
+        },
+      };
+    }
+
+    return insuranceInfo;
   }
 }
