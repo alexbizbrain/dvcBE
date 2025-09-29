@@ -15,6 +15,11 @@ export enum InsuranceTypeDto {
   COMMERCIAL_AUTO = 'COMMERCIAL_AUTO',
 }
 
+export enum InsuranceCompanyTypeDto {
+  SYSTEM = 'SYSTEM',
+  CUSTOM = 'CUSTOM',
+}
+
 export class CreateInsuranceCompanyDto {
   @IsString() companyName!: string;
   @IsEmail() contactEmail!: string;
@@ -49,6 +54,16 @@ export class ListInsuranceCompaniesQuery {
   @IsEnum(InsuranceTypeDto, { each: true })
   @Type(() => String)
   insuranceTypeIn?: InsuranceTypeDto[];
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value == null || value === '') return undefined;
+    if (Array.isArray(value)) return value;
+    return [value];
+  })
+  @IsEnum(InsuranceCompanyTypeDto, { each: true })
+  @Type(() => String)
+  insuranceCompanyTypeIn?: InsuranceCompanyTypeDto[];
 
   @IsOptional() @IsString() name?: string; // exact
   @IsOptional() @IsString() nameContains?: string; // ilike
