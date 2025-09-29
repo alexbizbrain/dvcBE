@@ -9,6 +9,10 @@ import { AdminClaimsQueryDto } from './dto/admin-claims-query.dto';
 import { AdminDocumentDto } from './dto/document.dto';
 import { MergeClaimJsonDto } from './dto/merge-claim-json.dto';
 import { AdminStatsDto } from './dto/admin-stats.dto';
+import { PatchVehicleInfoDto } from './dto/patch-vehicle-info.dto';
+import { PatchAccidentInfoDto } from './dto/patch-accident-info.dto';
+import { PatchInsuranceInfoDto } from './dto/patch-insurance-info.dto';
+import { PatchLiabilityInfoDto } from './dto/patch-liability-info.dto';
 
 const ACTIVE_STATUSES: ClaimStatus[] = [
   ClaimStatus.INPROGRESS,
@@ -423,6 +427,66 @@ export class ClaimsService {
     });
 
     return updated;
+  }
+
+  async patchVehicleInfo(id: string, dto: PatchVehicleInfoDto) {
+    const claim = await this.prismaService.claim.findUnique({ where: { id } });
+    if (!claim) throw new NotFoundException('Claim not found');
+    const vehicleInfo = {
+      ...(claim.vehicleInfo as any),
+      ...(dto.vehicleInfo ?? {}),
+    };
+    return this.prismaService.claim.update({
+      where: { id },
+      data: { vehicleInfo, updatedAt: new Date(), lastAccessedAt: new Date() },
+    });
+  }
+
+  async patchAccidentInfo(id: string, dto: PatchAccidentInfoDto) {
+    const claim = await this.prismaService.claim.findUnique({ where: { id } });
+    if (!claim) throw new NotFoundException('Claim not found');
+    const accidentInfo = {
+      ...(claim.accidentInfo as any),
+      ...(dto.accidentInfo ?? {}),
+    };
+    return this.prismaService.claim.update({
+      where: { id },
+      data: { accidentInfo, updatedAt: new Date(), lastAccessedAt: new Date() },
+    });
+  }
+
+  async patchInsuranceInfo(id: string, dto: PatchInsuranceInfoDto) {
+    const claim = await this.prismaService.claim.findUnique({ where: { id } });
+    if (!claim) throw new NotFoundException('Claim not found');
+    const insuranceInfo = {
+      ...(claim.insuranceInfo as any),
+      ...(dto.insuranceInfo ?? {}),
+    };
+    return this.prismaService.claim.update({
+      where: { id },
+      data: {
+        insuranceInfo,
+        updatedAt: new Date(),
+        lastAccessedAt: new Date(),
+      },
+    });
+  }
+
+  async patchLiabilityInfo(id: string, dto: PatchLiabilityInfoDto) {
+    const claim = await this.prismaService.claim.findUnique({ where: { id } });
+    if (!claim) throw new NotFoundException('Claim not found');
+    const liabilityInfo = {
+      ...(claim.liabilityInfo as any),
+      ...(dto.liabilityInfo ?? {}),
+    };
+    return this.prismaService.claim.update({
+      where: { id },
+      data: {
+        liabilityInfo,
+        updatedAt: new Date(),
+        lastAccessedAt: new Date(),
+      },
+    });
   }
 
   async stats(from?: string, to?: string): Promise<AdminStatsDto> {

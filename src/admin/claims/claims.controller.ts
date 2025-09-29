@@ -18,6 +18,10 @@ import { CurrentUser } from 'src/common/auth/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 import { MergeClaimJsonDto } from './dto/merge-claim-json.dto';
 import type { Response } from 'express';
+import { PatchVehicleInfoDto } from './dto/patch-vehicle-info.dto';
+import { PatchAccidentInfoDto } from './dto/patch-accident-info.dto';
+import { PatchInsuranceInfoDto } from './dto/patch-insurance-info.dto';
+import { PatchLiabilityInfoDto } from './dto/patch-liability-info.dto';
 
 @UseGuards(AuthGuard('admin-jwt'))
 @Controller('admin/claims')
@@ -73,6 +77,50 @@ export class ClaimsController {
     return {
       success: true,
       data: await this.claimsService.mergeJson(id, dto, adminId),
+    };
+  }
+
+  @Patch(':id/vehicle')
+  async patchVehicle(
+    @Param('id') id: string,
+    @Body() dto: PatchVehicleInfoDto,
+  ) {
+    return {
+      success: true,
+      data: await this.claimsService.patchVehicleInfo(id, dto),
+    };
+  }
+
+  @Patch(':id/accident')
+  async patchAccident(
+    @Param('id') id: string,
+    @Body() dto: PatchAccidentInfoDto,
+  ) {
+    return {
+      success: true,
+      data: await this.claimsService.patchAccidentInfo(id, dto),
+    };
+  }
+
+  @Patch(':id/insurance')
+  async patchInsurance(
+    @Param('id') id: string,
+    @Body() dto: PatchInsuranceInfoDto,
+  ) {
+    return {
+      success: true,
+      data: await this.claimsService.patchInsuranceInfo(id, dto),
+    };
+  }
+
+  @Patch(':id/liability')
+  async patchLiability(
+    @Param('id') id: string,
+    @Body() dto: PatchLiabilityInfoDto,
+  ) {
+    return {
+      success: true,
+      data: await this.claimsService.patchLiabilityInfo(id, dto),
     };
   }
 
