@@ -6,7 +6,7 @@ import { ClaimStatus, ClaimFlow } from '@prisma/client';
 
 @Injectable()
 export class CalculatorProgressService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async getProgress(
     userId: string,
