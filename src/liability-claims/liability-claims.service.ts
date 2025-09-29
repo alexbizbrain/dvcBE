@@ -1,4 +1,4 @@
-import { Prisma, ClaimStatus } from '@prisma/client';
+import { Prisma, ClaimStatus, ClaimFlow } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { Injectable } from '@nestjs/common';
@@ -69,6 +69,7 @@ export class LiabilityClaimsService {
             data: {
               userId: ensuredUser.id!,
               status: ClaimStatus.INPROGRESS,
+              flow: ClaimFlow.LIABILITY_MODAL, // Track that this claim was created via liability modal
               currentStep: 1, // Start at step 2 since we have liability data
               lastAccessedAt: new Date(),
               // Pre-fill liability info from the payload
@@ -153,6 +154,7 @@ export class LiabilityClaimsService {
       currentStep: claim.currentStep,
       isSubmitted: claim.status === ClaimStatus.DV_CLAIM_CREATED,
       status: claim.status,
+      flow: claim.flow,
       lastAccessedAt: claim.lastAccessedAt,
       vehicleInfo: {
         year: vehicleInfo.year || vehicleInfo.vehicleYear,

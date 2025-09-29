@@ -21,6 +21,11 @@ enum ClaimStatus {
   CLOSED
 }
 
+enum ClaimFlow {
+  CALCULATOR_FORM
+  LIABILITY_MODAL
+}
+
 enum InsuranceType {
   AUTO
   COMMERCIAL_AUTO
@@ -113,6 +118,7 @@ model Claim {
   // Progress tracking
   currentStep     Int      @default(1)
   status          ClaimStatus @default(INPROGRESS)  // Using enum instead of String
+  flow            ClaimFlow @default(CALCULATOR_FORM)  // Track how claim was created
 
   lastAccessedAt  DateTime @default(now())
 

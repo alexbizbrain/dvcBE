@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SaveProgressDto } from './dto/save-progress.dto';
 import { CalculatorProgressResponseDto } from './dto/calculator-progress-response.dto';
-import { ClaimStatus } from '@prisma/client';
+import { ClaimStatus, ClaimFlow } from '@prisma/client';
 
 @Injectable()
 export class CalculatorProgressService {
@@ -51,6 +51,11 @@ export class CalculatorProgressService {
     // Update status if provided
     if (data.status !== undefined) {
       updateData.status = data.status;
+    }
+
+    // Update flow if provided
+    if (data.flow !== undefined) {
+      updateData.flow = data.flow;
     }
     if (
       data.currentStep === 2 &&
@@ -128,6 +133,7 @@ export class CalculatorProgressService {
         data: {
           userId,
           status: ClaimStatus.INPROGRESS,
+          flow: data.flow || ClaimFlow.CALCULATOR_FORM, // Use provided flow or default to CALCULATOR_FORM
           ...updateData,
         },
       });
@@ -246,6 +252,7 @@ export class CalculatorProgressService {
       currentStep: claim.currentStep,
       isSubmitted: claim.status === ClaimStatus.DV_CLAIM_CREATED,
       status: claim.status,
+      flow: claim.flow,
       lastAccessedAt: claim.lastAccessedAt,
       vehicleInfo: {
         year: vehicleInfo.year || vehicleInfo.vehicleYear,
