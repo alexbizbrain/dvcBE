@@ -6,10 +6,9 @@ import {
   IsEmail,
   IsUrl,
   IsObject,
-  IsArray,
   IsDateString,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export enum InsuranceTypeDto {
   AUTO = 'AUTO',
@@ -42,7 +41,11 @@ export class ListInsuranceCompaniesQuery {
 
   // exact filters
   @IsOptional()
-  @IsArray()
+  @Transform(({ value }) => {
+    if (value == null || value === '') return undefined;
+    if (Array.isArray(value)) return value;
+    return [value];
+  })
   @IsEnum(InsuranceTypeDto, { each: true })
   @Type(() => String)
   insuranceTypeIn?: InsuranceTypeDto[];

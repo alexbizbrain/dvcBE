@@ -4,7 +4,7 @@ import { HealthService } from './health.service';
 import { ClaimStatus } from '@prisma/client';
 
 type RecentActivity = {
-  type: 'user' | 'claim' | 'customer-query' | 'review' | 'liability-claim';
+  type: 'user' | 'claim' | 'customer-query' | 'review';
   id: string;
   title: string;
   createdAt: string;
@@ -35,9 +35,6 @@ export class AdminService {
       UNION ALL
       SELECT 'customer_query' AS type, q."id", q."email" AS title, q."createdAt"
       FROM "customer_queries" q
-      UNION ALL
-      SELECT 'liability_claim' AS type, l."id", COALESCE(l."email", l."phoneNumber", 'Liability claim') AS title, l."createdAt"
-      FROM "liability_claims" l
       UNION ALL
       SELECT 'review' AS type, r."id", CONCAT('Review • ', r."rating", '/5') AS title, r."createdAt"
       FROM "reviews" r
