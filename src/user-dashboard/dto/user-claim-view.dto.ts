@@ -17,6 +17,7 @@ export type UserClaimViewDto = {
     mileage?: number | string;
     repairCost?: number | null;
     approximateCarPrice?: number | string;
+    isCommercialVehicle?: boolean;
   };
   accidentInfo: {
     accidentDate?: string | Date;
