@@ -75,7 +75,7 @@ export class InsuranceService {
       });
 
     if (q.insuranceTypeIn?.length)
-      and.push({ insuranceType: { in: q.insuranceTypeIn as any } });
+      and.push({ insuranceType: { in: q.insuranceTypeIn } });
 
     if (q.licensedState) {
       and.push({
