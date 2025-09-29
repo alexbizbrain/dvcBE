@@ -10,6 +10,14 @@ async function main() {
 
   try {
     console.log('🌱 Starting seed...');
+    try {
+      const dbUrl = process.env.DATABASE_URL || '';
+      const u = new URL(dbUrl);
+      const masked = `${u.protocol}//${u.hostname}:${u.port || ''}/${u.pathname.replace('/', '')}`;
+      console.log('🗄️  Database:', masked || '(unknown)');
+    } catch {
+      // ignore
+    }
 
     const seeders = [
       new RoleSeeder(),
