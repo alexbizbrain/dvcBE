@@ -163,6 +163,7 @@ export class LiabilityClaimsService {
         vin: vehicleInfo.vin || vehicleInfo.vehicleVin,
         mileage: vehicleInfo.mileage || vehicleInfo.vehicleMileage,
         approximateCarPrice: vehicleInfo.approximateCarPrice,
+        isCommercialVehicle: vehicleInfo.isCommercialVehicle,
       },
       accidentInfo: {
         accidentDate: accidentInfo.accidentDate,

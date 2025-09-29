@@ -261,6 +261,7 @@ export class CalculatorProgressService {
         vin: vehicleInfo.vin || vehicleInfo.vehicleVin,
         mileage: vehicleInfo.mileage || vehicleInfo.vehicleMileage,
         approximateCarPrice: vehicleInfo.approximateCarPrice,
+        isCommercialVehicle: vehicleInfo.isCommercialVehicle,
       },
       accidentInfo: {
         accidentDate: accidentInfo.accidentDate,

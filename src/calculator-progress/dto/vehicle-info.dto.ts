@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsBoolean } from 'class-validator';
 
 export class VehicleInfoDto {
   @IsOptional()
@@ -24,4 +24,8 @@ export class VehicleInfoDto {
   @IsOptional()
   @IsString()
   approximateCarPrice?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isCommercialVehicle?: boolean;
 }

@@ -312,6 +312,7 @@ export class UserDashboardService {
         mileage: vi.mileage ?? vi.vehicleMileage,
         repairCost: toNumber(vi.repairCost),
         approximateCarPrice: vi.approximateCarPrice,
+        isCommercialVehicle: vi.isCommercialVehicle,
       },
       accidentInfo: {
         accidentDate: ai.accidentDate,
