@@ -4,6 +4,7 @@ import { AdminSeeder } from './seeders/admin.seeder';
 import { ReviewSeeder } from './seeders/review.seeder';
 import { CustomerQuerySeeder } from './seeders/customer-query.seeder';
 import { InsuranceCompanySeeder } from './seeders/insurance-company.seeder';
+import { DvccConfigSeeder } from './seeders/dvcc-config.seeder';
 
 async function main() {
   const prisma = new PrismaClient();
@@ -25,6 +26,7 @@ async function main() {
       new ReviewSeeder(),
       new CustomerQuerySeeder(),
       new InsuranceCompanySeeder(),
+      new DvccConfigSeeder(),
       // Add more seeders here
     ];
 
@@ -45,4 +47,4 @@ async function main() {
   }
 }
 
-main();
+void main();

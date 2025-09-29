@@ -175,7 +175,7 @@ model DVCCConfiguration {
   maxApproxCarPrice         Decimal   @default(100000000)
   minApproxCarPriceActive   Boolean   @default(false)
   maxApproxCarPriceActive   Boolean   @default(false)
-  minTotalRepairCost        Decimal? 
+  minTotalRepairCost        Decimal?
   minTotalRepairCostActive  Boolean   @default(false)
   maxTotalRepairCost        Decimal?
   maxTotalRepairCostActive  Boolean   @default(false)
