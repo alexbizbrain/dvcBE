@@ -8,6 +8,7 @@ import {
   Get,
   Res,
   UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserDto } from './dto/user.dto';
@@ -22,6 +23,7 @@ import type { User } from '@prisma/client';
 import { AuthToken } from 'src/common/auth/decorators/auth-token.decorator';
 import { Roles } from 'src/common/auth/decorators/roles.decorator';
 import type { Response } from 'express';
+import { GetInsuranceCompaniesDto } from './dto/insurance-companies.dto';
 
 @Controller('users')
 export class UsersController {
@@ -133,7 +135,19 @@ export class UsersController {
 
   @Roles('user')
   @Get('insurance-companies')
-  async getInsuranceCompanies() {
-    return this.usersService.getInsuranceCompanies();
+  @Get('insurance-companies')
+  async getInsuranceCompanies(
+    @Query() query: GetInsuranceCompaniesDto
+  ) {
+    const { search, page = 1, limit = 50 } = query;
+
+    return this.usersService.getInsuranceCompanies({
+      search,
+      page,
+      limit,
+    });
   }
+  // async getInsuranceCompanies() {
+  //   return this.usersService.getInsuranceCompanies();
+  // }
 }

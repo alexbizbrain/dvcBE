@@ -1,9 +1,12 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { InsuranceCompanyDto } from './insurance-company.dto';
 
 export class InsuranceInfoDto {
   @IsOptional()
-  @IsString()
-  yourInsurance?: string;
+  @ValidateNested()
+  @Type(() => InsuranceCompanyDto)
+  yourInsurance?: InsuranceCompanyDto;
 
   @IsOptional()
   @IsString()

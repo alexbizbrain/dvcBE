@@ -31,6 +31,11 @@ enum InsuranceType {
   COMMERCIAL_AUTO
 }
 
+enum InsuranceCompanyType {
+  SYSTEM
+  CUSTOM
+}
+
 model Role {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -62,6 +67,7 @@ model User {
   role            Role      @relation(fields: [roleId], references: [id])
   claims          Claim[]
   customerQueries CustomerQuery[]
+  insuranceCompanies InsuranceCompany[]
 
   @@map("users")
 }
@@ -148,12 +154,18 @@ model InsuranceCompany {
   websiteUrl String?
   companyLicensed Json?
   companyInformation String?
+  userId String? // Can be null for existing system records
+  type InsuranceCompanyType @default(SYSTEM) // Required field, defaults to SYSTEM
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   @@unique([companyName, insuranceType], name: "insurance_company_unique")
   @@index([insuranceType], name: "idx_insurance_company_type")
+  @@index([userId], name: "idx_insurance_company_user")
   @@map("insurance_companies")
 }
 

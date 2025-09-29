@@ -12,7 +12,7 @@ export class LiabilityClaimsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-  ) { }
+  ) {}
 
   private async ensureUserTx(
     tx: Prisma.TransactionClient,
@@ -140,7 +140,6 @@ export class LiabilityClaimsService {
       throw error;
     }
   }
-
 
   private mapClaimToResponse(claim: any) {
     // Extract JSON data with fallback to empty objects
