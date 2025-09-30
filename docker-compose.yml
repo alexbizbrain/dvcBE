@@ -8,9 +8,23 @@ services:
       - '4000:4000'
     environment:
       - NODE_ENV=production
+      - PORT=4000
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
-      - PORT=4000
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ISS=${JWT_ISS:-dvcc-app}
+      - JWT_AUD=${JWT_AUD:-dvcc-users}
+      - APP_NAME=${APP_NAME:-DVCC}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@yourdomain.com}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_MESSAGING_SERVICE_SID=${TWILIO_MESSAGING_SERVICE_SID}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     restart: unless-stopped
     command: sh -c "yarn prisma migrate deploy && yarn start:prod"
