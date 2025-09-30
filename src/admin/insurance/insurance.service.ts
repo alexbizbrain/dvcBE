@@ -28,6 +28,17 @@ export class InsuranceService {
   async findById(id: string) {
     const item = await this.prisma.insuranceCompany.findUnique({
       where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            phoneNumber: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
     if (!item) throw new Error('Insurance company not found');
     return item;
@@ -80,6 +91,78 @@ export class InsuranceService {
     if (q.insuranceCompanyTypeIn?.length)
       and.push({ type: { in: q.insuranceCompanyTypeIn as any } });
 
+    // user filters
+    if (q.userId) {
+      and.push({ userId: { equals: q.userId } });
+    }
+
+    if (q.userEmail) {
+      and.push({
+        user: {
+          email: { equals: q.userEmail, mode: 'insensitive' },
+        },
+      });
+    }
+
+    if (q.userEmailContains) {
+      and.push({
+        user: {
+          email: { contains: q.userEmailContains, mode: 'insensitive' },
+        },
+      });
+    }
+
+    if (q.userPhoneNumber) {
+      and.push({
+        user: {
+          phoneNumber: { equals: q.userPhoneNumber },
+        },
+      });
+    }
+
+    if (q.userPhoneNumberContains) {
+      and.push({
+        user: {
+          phoneNumber: {
+            contains: q.userPhoneNumberContains,
+            mode: 'insensitive',
+          },
+        },
+      });
+    }
+
+    if (q.userFirstName) {
+      and.push({
+        user: {
+          firstName: { equals: q.userFirstName, mode: 'insensitive' },
+        },
+      });
+    }
+
+    if (q.userFirstNameContains) {
+      and.push({
+        user: {
+          firstName: { contains: q.userFirstNameContains, mode: 'insensitive' },
+        },
+      });
+    }
+
+    if (q.userLastName) {
+      and.push({
+        user: {
+          lastName: { equals: q.userLastName, mode: 'insensitive' },
+        },
+      });
+    }
+
+    if (q.userLastNameContains) {
+      and.push({
+        user: {
+          lastName: { contains: q.userLastNameContains, mode: 'insensitive' },
+        },
+      });
+    }
+
     if (q.licensedState) {
       and.push({
         companyLicensed: {
@@ -128,6 +211,17 @@ export class InsuranceService {
         skip: 1,
         cursor: { id: cursor },
         orderBy: { [sortBy]: sortOrder as Prisma.SortOrder },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              phoneNumber: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
       });
       const nextCursor =
         items.length === limit ? items[items.length - 1].id : null;
@@ -140,6 +234,17 @@ export class InsuranceService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { [sortBy]: sortOrder as Prisma.SortOrder },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              phoneNumber: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
       }),
       this.prisma.insuranceCompany.count({ where }),
     ]);

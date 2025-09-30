@@ -65,6 +65,17 @@ export class ListInsuranceCompaniesQuery {
   @Type(() => String)
   insuranceCompanyTypeIn?: InsuranceCompanyTypeDto[];
 
+  // user filters
+  @IsOptional() @IsString() userId?: string;
+  @IsOptional() @IsString() userEmail?: string;
+  @IsOptional() @IsString() userEmailContains?: string;
+  @IsOptional() @IsString() userPhoneNumber?: string;
+  @IsOptional() @IsString() userPhoneNumberContains?: string;
+  @IsOptional() @IsString() userFirstName?: string;
+  @IsOptional() @IsString() userFirstNameContains?: string;
+  @IsOptional() @IsString() userLastName?: string;
+  @IsOptional() @IsString() userLastNameContains?: string;
+
   @IsOptional() @IsString() name?: string; // exact
   @IsOptional() @IsString() nameContains?: string; // ilike
   @IsOptional() @IsString() email?: string;
