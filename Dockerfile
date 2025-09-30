@@ -4,21 +4,25 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better layer caching
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm install
+# Install dependencies (production only)
+RUN npm ci --only=production && npm cache clean --force
 
-# Copy the rest of the application
+# Copy source code
 COPY . .
 
-# Generate Prisma Client
-RUN npx prisma generate
+# Generate Prisma Client and build the application
+RUN npx prisma generate && npm run build
 
-# Build the NestJS application
-RUN npm run build
+# Remove dev dependencies to reduce image size
+RUN npm prune --production
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
+USER nestjs
 
 # Expose the port your app runs on
 EXPOSE 4000
