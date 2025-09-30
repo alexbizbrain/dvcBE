@@ -13,8 +13,9 @@ export class InsuranceInfoDto {
   claimNumber?: string;
 
   @IsOptional()
-  @IsString()
-  atFaultInsurance?: string;
+  @ValidateNested()
+  @Type(() => InsuranceCompanyDto)
+  atFaultInsurance?: InsuranceCompanyDto;
 
   @IsOptional()
   @IsString()

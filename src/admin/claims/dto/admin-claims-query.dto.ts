@@ -52,7 +52,7 @@ export class AdminClaimsQueryDto {
 
   @IsOptional()
   @IsString()
-  insurer?: string; // matches insuranceInfo.yourInsurance || atFaultInsurance (contains, CI)
+  insurer?: string; // matches insuranceInfo.yourInsurance.companyName || atFaultInsurance.companyName (contains, CI)
 
   @IsOptional()
   @IsBoolean()
