@@ -8,8 +8,8 @@ WORKDIR /app
 COPY package*.json yarn.lock ./
 COPY prisma ./prisma/
 
-# Install dependencies (production only)
-RUN yarn install --frozen-lockfile --production && yarn cache clean
+# Install all dependencies (including dev dependencies for build)
+RUN yarn install --frozen-lockfile && yarn cache clean
 
 # Copy source code
 COPY . .
