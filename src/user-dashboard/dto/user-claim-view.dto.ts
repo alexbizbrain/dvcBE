@@ -29,9 +29,15 @@ export type UserClaimViewDto = {
     hitAndRun?: boolean;
   };
   insuranceInfo: {
-    yourInsurance?: string;
+    yourInsurance?: {
+      insuranceCompanyId?: string;
+      companyName?: string;
+    };
     claimNumber?: string;
-    atFaultInsurance?: string;
+    atFaultInsurance?: {
+      insuranceCompanyId?: string;
+      companyName?: string;
+    };
     adjusterName?: string;
     adjusterEmail?: string;
     adjusterPhone?: string;

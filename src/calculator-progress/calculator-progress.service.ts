@@ -171,7 +171,7 @@ export class CalculatorProgressService {
           status: ClaimStatus.INPROGRESS,
         },
       });
-    } catch (error) {
+    } catch {
       // If no draft claim exists, that's fine - nothing to clear
       console.log('No draft claim to clear for user:', userId);
     }
@@ -331,13 +331,14 @@ export class CalculatorProgressService {
     userId: string,
     insuranceInfo: any,
   ): Promise<any> {
-    // Check if yourInsurance has insuranceCompanyId as null and companyName is provided
+    const processedInsuranceInfo = { ...insuranceInfo };
+
+    // Handle yourInsurance custom company creation
     if (
       insuranceInfo?.yourInsurance &&
       !insuranceInfo.yourInsurance.insuranceCompanyId &&
       insuranceInfo.yourInsurance.companyName
     ) {
-      // Create a new custom insurance company
       const customInsuranceCompany = await this.prisma.insuranceCompany.create({
         data: {
           companyName: insuranceInfo.yourInsurance.companyName,
@@ -348,16 +349,34 @@ export class CalculatorProgressService {
         },
       });
 
-      // Update the insuranceInfo to use the new company ID
-      return {
-        ...insuranceInfo,
-        yourInsurance: {
-          insuranceCompanyId: customInsuranceCompany.id,
-          companyName: customInsuranceCompany.companyName,
-        },
+      processedInsuranceInfo.yourInsurance = {
+        insuranceCompanyId: customInsuranceCompany.id,
+        companyName: customInsuranceCompany.companyName,
       };
     }
 
-    return insuranceInfo;
+    // Handle atFaultInsurance custom company creation
+    if (
+      insuranceInfo?.atFaultInsurance &&
+      !insuranceInfo.atFaultInsurance.insuranceCompanyId &&
+      insuranceInfo.atFaultInsurance.companyName
+    ) {
+      const customInsuranceCompany = await this.prisma.insuranceCompany.create({
+        data: {
+          companyName: insuranceInfo.atFaultInsurance.companyName,
+          contactEmail: '', // Default empty email
+          insuranceType: 'AUTO', // Default to AUTO
+          type: 'CUSTOM',
+          userId: userId,
+        },
+      });
+
+      processedInsuranceInfo.atFaultInsurance = {
+        insuranceCompanyId: customInsuranceCompany.id,
+        companyName: customInsuranceCompany.companyName,
+      };
+    }
+
+    return processedInsuranceInfo;
   }
 }
