@@ -15,7 +15,7 @@ services:
       - PORT=4000
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     restart: unless-stopped
-    command: sh -c "npx prisma migrate deploy && npm run start:prod"
+    command: sh -c "yarn prisma migrate deploy && yarn start:prod"
     healthcheck:
       test:
         [

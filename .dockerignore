@@ -22,3 +22,5 @@ docker-compose.yml
 .dockerignore
 test
 docs
+.yarn
+.yarnrc.yml
