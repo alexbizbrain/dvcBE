@@ -131,6 +131,9 @@ export class CalculatorProgressService {
         existingDraft?.insuranceInfo as any,
         processedInsuranceInfo,
       );
+
+      // Sync user data from insurance info (only update missing fields)
+      await this.syncUserDataFromInsuranceInfo(userId, data.insuranceInfo);
     }
 
     if (data.pricingPlan) {
@@ -363,5 +366,54 @@ export class CalculatorProgressService {
     }
 
     return processedInsuranceInfo;
+  }
+
+  private async syncUserDataFromInsuranceInfo(
+    userId: string,
+    insuranceInfo: any,
+  ): Promise<void> {
+    if (!insuranceInfo) return;
+
+    const { firstName, lastName, email, phone } = insuranceInfo;
+
+    // Get current user data to check what's missing
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        phoneNumber: true,
+      },
+    });
+
+    if (!currentUser) return;
+
+    // Prepare update data - only include fields that are missing
+    const updateData: any = {};
+
+    if (firstName && !currentUser.firstName) {
+      updateData.firstName = firstName;
+    }
+
+    if (lastName && !currentUser.lastName) {
+      updateData.lastName = lastName;
+    }
+
+    if (email && !currentUser.email) {
+      updateData.email = email;
+    }
+
+    if (phone && !currentUser.phoneNumber) {
+      updateData.phoneNumber = phone;
+    }
+
+    // Only update if there's something to update
+    if (Object.keys(updateData).length > 0) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
+    }
   }
 }
