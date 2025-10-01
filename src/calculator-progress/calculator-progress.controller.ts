@@ -13,6 +13,7 @@ import { SaveProgressDto } from './dto/save-progress.dto';
 import { DvccConfigResponseDto } from './dto/dvcc-config-response.dto';
 import { JwtAuthGuard } from 'src/common/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/auth/decorators/current-user.decorator';
+import { Public } from 'src/common/auth/decorators/public.decorator';
 import { DvccConfigService } from '../admin/dvcc-config/dvcc-config.service';
 
 @Controller('calculator-progress')
@@ -78,6 +79,7 @@ export class CalculatorProgressController {
   }
 
   @Get('config')
+  @Public()
   async getDvccConfig(): Promise<{
     success: boolean;
     data: DvccConfigResponseDto;
