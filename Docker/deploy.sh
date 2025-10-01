@@ -34,7 +34,7 @@ git pull origin main
 
 # Stop existing containers
 echo "🛑 Stopping existing containers..."
-docker-compose -f "$COMPOSE_FILE" down
+docker compose -f "$COMPOSE_FILE" down
 
 # Remove old images (optional - uncomment if you want to clean up)
 # echo "🧹 Cleaning up old images..."
@@ -42,7 +42,7 @@ docker-compose -f "$COMPOSE_FILE" down
 
 # Build and start new containers
 echo "🔨 Building and starting new containers..."
-docker-compose -f "$COMPOSE_FILE" up --build -d
+docker compose -f "$COMPOSE_FILE" up --build -d
 
 # Wait for health check
 echo "⏳ Waiting for application to be healthy..."
@@ -50,11 +50,11 @@ sleep 10
 
 # Check container status
 echo "📊 Container status:"
-docker-compose -f "$COMPOSE_FILE" ps
+docker compose -f "$COMPOSE_FILE" ps
 
 # Check logs for any errors
 echo "📋 Recent logs:"
-docker-compose -f "$COMPOSE_FILE" logs --tail=20
+docker compose -f "$COMPOSE_FILE" logs --tail=20
 
 echo "✅ Deployment completed successfully!"
 echo "🌐 Application should be available at: http://localhost:4000"
