@@ -1,13 +1,13 @@
 services:
   nestjs-app:
     build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: nestjs-staging
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: nestjs-development
     ports:
       - '4000:4000'
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=4000
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
@@ -27,7 +27,10 @@ services:
       - TWILIO_MESSAGING_SERVICE_SID=${TWILIO_MESSAGING_SERVICE_SID}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     restart: unless-stopped
-    command: sh -c "yarn prisma migrate deploy && yarn start:prod"
+    command: sh -c "yarn prisma migrate deploy && yarn start:dev"
+    volumes:
+      - ../src:/app/src
+      - ../prisma:/app/prisma
     healthcheck:
       test:
         [
