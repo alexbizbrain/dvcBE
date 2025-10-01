@@ -126,7 +126,7 @@ export class UsersService {
 
     return {
       success: true,
-      message: `OTP sent to ${phoneNumber}`,
+      message: `OTP sent to ${contact}`,
       developmentOtp:
         this.configService.get('NODE_ENV') === 'development' ? code : undefined,
       ttlMinutes: 120,
