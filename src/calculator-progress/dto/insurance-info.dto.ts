@@ -1,12 +1,28 @@
-import { IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsOptional, IsString, ValidateNested, IsEmail } from 'class-validator';
 import { Type } from 'class-transformer';
 import { InsuranceCompanyDto } from './insurance-company.dto';
 
 export class InsuranceInfoDto {
+  // Contact Information (required fields)
   @IsOptional()
-  @ValidateNested()
-  @Type(() => InsuranceCompanyDto)
-  yourInsurance?: InsuranceCompanyDto;
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
 
   @IsOptional()
   @IsString()

@@ -12,7 +12,7 @@ export class LiabilityClaimsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-  ) {}
+  ) { }
 
   private async ensureUserTx(
     tx: Prisma.TransactionClient,
@@ -175,7 +175,11 @@ export class LiabilityClaimsService {
         hasRepairEstimate: accidentInfo.hasRepairEstimate,
       },
       insuranceInfo: {
-        yourInsurance: insuranceInfo.yourInsurance,
+        firstName: insuranceInfo.firstName,
+        lastName: insuranceInfo.lastName,
+        email: insuranceInfo.email,
+        phone: insuranceInfo.phone,
+        address: insuranceInfo.address,
         claimNumber: insuranceInfo.claimNumber,
         atFaultInsurance: insuranceInfo.atFaultInsurance,
         adjusterName: insuranceInfo.adjusterName,
