@@ -21,7 +21,7 @@ export class CalculatorProgressController {
   constructor(
     private readonly calculatorProgressService: CalculatorProgressService,
     private readonly dvccConfigService: DvccConfigService,
-  ) {}
+  ) { }
 
   @Get()
   async getProgress(@CurrentUser() user: { id: string }) {
@@ -87,17 +87,11 @@ export class CalculatorProgressController {
     // Transform Prisma Decimal fields to numbers for frontend
     const responseData: DvccConfigResponseDto = {
       minApproxCarPrice: Number(config.minApproxCarPrice),
-      maxApproxCarPrice: Number(config.maxApproxCarPrice),
       minApproxCarPriceActive: config.minApproxCarPriceActive,
-      maxApproxCarPriceActive: config.maxApproxCarPriceActive,
       minTotalRepairCost: config.minTotalRepairCost
         ? Number(config.minTotalRepairCost)
         : null,
       minTotalRepairCostActive: config.minTotalRepairCostActive,
-      maxTotalRepairCost: config.maxTotalRepairCost
-        ? Number(config.maxTotalRepairCost)
-        : null,
-      maxTotalRepairCostActive: config.maxTotalRepairCostActive,
       contingencyPlanPercentage: config.contingencyPlanPercentage
         ? Number(config.contingencyPlanPercentage)
         : null,

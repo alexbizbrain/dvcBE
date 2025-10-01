@@ -6,7 +6,7 @@ const SINGLETON_ID = 'singleton-dvcc-config';
 
 @Injectable()
 export class DvccConfigService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async get(): Promise<any> {
     const existing = await this.prisma.dVCCConfiguration.findFirst();
@@ -24,20 +24,12 @@ export class DvccConfigService {
     const data: any = {};
     if (dto.minApproxCarPrice != null)
       data.minApproxCarPrice = dto.minApproxCarPrice;
-    if (dto.maxApproxCarPrice != null)
-      data.maxApproxCarPrice = dto.maxApproxCarPrice;
     if (dto.minApproxCarPriceActive != null)
       data.minApproxCarPriceActive = dto.minApproxCarPriceActive;
-    if (dto.maxApproxCarPriceActive != null)
-      data.maxApproxCarPriceActive = dto.maxApproxCarPriceActive;
     if (dto.minTotalRepairCost != null)
       data.minTotalRepairCost = dto.minTotalRepairCost;
     if (dto.minTotalRepairCostActive != null)
       data.minTotalRepairCostActive = dto.minTotalRepairCostActive;
-    if (dto.maxTotalRepairCost != null)
-      data.maxTotalRepairCost = dto.maxTotalRepairCost;
-    if (dto.maxTotalRepairCostActive != null)
-      data.maxTotalRepairCostActive = dto.maxTotalRepairCostActive;
     if (dto.contingencyPlanPercentage != null)
       data.contingencyPlanPercentage = dto.contingencyPlanPercentage;
 
