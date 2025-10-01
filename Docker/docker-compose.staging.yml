@@ -2,7 +2,7 @@ services:
   nestjs-app:
     build:
       context: ..
-      dockerfile: Docker/Dockerfile
+      dockerfile: Docker/nestjs-app/Dockerfile
     container_name: nestjs-staging
     ports:
       - '4000:4000'
@@ -13,6 +13,8 @@ services:
       - PORT=4000
     restart: unless-stopped
     command: sh -c "yarn prisma migrate deploy && yarn start:prod"
+    networks:
+      - app-network
     healthcheck:
       test:
         [
@@ -27,3 +29,22 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-staging
+    ports:
+      - '8080:80' # Using 8080 for testing, change to '80:80' when ready
+    volumes:
+      - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf/staging.nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      nestjs-app:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
