@@ -172,13 +172,9 @@ model InsuranceCompany {
 model DVCCConfiguration {
   id String @id @default(cuid())
   minApproxCarPrice         Decimal   @default(0)
-  maxApproxCarPrice         Decimal   @default(100000000)
   minApproxCarPriceActive   Boolean   @default(false)
-  maxApproxCarPriceActive   Boolean   @default(false)
   minTotalRepairCost        Decimal?
   minTotalRepairCostActive  Boolean   @default(false)
-  maxTotalRepairCost        Decimal?
-  maxTotalRepairCostActive  Boolean   @default(false)
   contingencyPlanPercentage Decimal?  @db.Decimal(5, 2)
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime  @updatedAt

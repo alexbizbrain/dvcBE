@@ -8,17 +8,8 @@ export class UpdateDvccConfigDto {
   minApproxCarPrice?: number;
 
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  maxApproxCarPrice?: number;
-
-  @IsOptional()
   @IsBoolean()
   minApproxCarPriceActive?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  maxApproxCarPriceActive?: boolean;
 
   @IsOptional()
   @Type(() => Number)
@@ -29,14 +20,6 @@ export class UpdateDvccConfigDto {
   @IsBoolean()
   minTotalRepairCostActive?: boolean;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  maxTotalRepairCost?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  maxTotalRepairCostActive?: boolean;
 
   @IsOptional()
   @Type(() => Number)
@@ -49,13 +32,9 @@ export class UpdateDvccConfigDto {
 export type DvccConfigResponse = {
   id: string;
   minApproxCarPrice: string; // Prisma Decimal serialized
-  maxApproxCarPrice: string;
   minApproxCarPriceActive: boolean;
-  maxApproxCarPriceActive: boolean;
   minTotalRepairCost: string | null;
   minTotalRepairCostActive: boolean;
-  maxTotalRepairCost: string | null;
-  maxTotalRepairCostActive: boolean;
   contingencyPlanPercentage: string | null; // decimal(5,2)
   createdAt: string;
   updatedAt: string;
