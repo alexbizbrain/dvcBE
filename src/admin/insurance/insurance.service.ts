@@ -21,6 +21,8 @@ export class InsuranceService {
         websiteUrl: dto.websiteUrl,
         companyLicensed: dto.companyLicensed,
         companyInformation: dto.companyInformation,
+        userId: dto.userId || null,
+        type: dto.type || 'SYSTEM',
       },
     });
   }
@@ -271,6 +273,8 @@ export class InsuranceService {
           companyLicensed:
             (dto.companyLicensed as Prisma.InputJsonValue) ?? undefined,
           companyInformation: dto.companyInformation,
+          userId: dto.userId !== undefined ? dto.userId : undefined,
+          type: dto.type as any,
         },
       });
     } catch (e: any) {

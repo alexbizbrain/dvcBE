@@ -28,6 +28,8 @@ export class CreateInsuranceCompanyDto {
   @IsOptional() @IsUrl() websiteUrl?: string;
   @IsOptional() @IsObject() companyLicensed?: Record<string, any>;
   @IsOptional() @IsString() companyInformation?: string;
+  @IsOptional() @IsString() userId?: string;
+  @IsOptional() @IsEnum(InsuranceCompanyTypeDto) type?: InsuranceCompanyTypeDto;
 }
 
 export class UpdateInsuranceCompanyDto {
@@ -38,6 +40,8 @@ export class UpdateInsuranceCompanyDto {
   @IsOptional() @IsUrl() websiteUrl?: string;
   @IsOptional() @IsObject() companyLicensed?: Record<string, any>;
   @IsOptional() @IsString() companyInformation?: string;
+  @IsOptional() @IsString() userId?: string;
+  @IsOptional() @IsEnum(InsuranceCompanyTypeDto) type?: InsuranceCompanyTypeDto;
 }
 
 export class ListInsuranceCompaniesQuery {
