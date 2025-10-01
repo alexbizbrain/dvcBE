@@ -135,19 +135,16 @@ export class UsersController {
 
   @Roles('user')
   @Get('insurance-companies')
-  @Get('insurance-companies')
   async getInsuranceCompanies(
     @Query() query: GetInsuranceCompaniesDto
   ) {
-    const { search, page = 1, limit = 50 } = query;
+    const { search, type, page = 1, limit = 50 } = query;
 
     return this.usersService.getInsuranceCompanies({
       search,
+      type,
       page,
       limit,
     });
   }
-  // async getInsuranceCompanies() {
-  //   return this.usersService.getInsuranceCompanies();
-  // }
 }

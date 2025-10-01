@@ -17,6 +17,7 @@ import { ConfigService } from '@nestjs/config';
 
 interface GetInsuranceCompaniesParams {
   search?: string;
+  type?: 'AUTO' | 'COMMERCIAL_AUTO';
   page?: number;
   limit?: number;
 }
@@ -265,20 +266,24 @@ export class UsersService {
   //   };
   // }
   async getInsuranceCompanies(params: GetInsuranceCompaniesParams = {}) {
-    const { search, page = 1, limit = 50 } = params;
+    const { search, type, page = 1, limit = 50 } = params;
 
     // Calculate offset for pagination
     const skip = (page - 1) * limit;
 
-    // Build where clause for search
-    const where = search
-      ? {
-        companyName: {
-          contains: search,
-          mode: 'insensitive' as const, // Case-insensitive search
-        },
-      }
-      : {};
+    // Build where clause for search and type filter
+    const where: any = {};
+
+    if (search) {
+      where.companyName = {
+        contains: search,
+        mode: 'insensitive' as const, // Case-insensitive search
+      };
+    }
+
+    if (type) {
+      where.insuranceType = type;
+    }
 
     // Execute queries in parallel for better performance
     const [companies, total] = await Promise.all([
