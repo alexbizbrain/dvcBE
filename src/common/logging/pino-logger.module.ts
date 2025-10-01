@@ -2,7 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'crypto';
 
-const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
+const isProd = ['production', 'staging'].includes(process.env.NODE_ENV ?? 'development');
 
 @Global()
 @Module({
@@ -13,14 +13,14 @@ const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
 
         transport: !isProd
           ? {
-              target: 'pino-pretty',
-              options: {
-                colorize: true,
-                singleLine: true,
-                translateTime: 'yyyy-mm-dd HH:MM:ss.l Z',
-                ignore: 'pid,hostname',
-              },
-            }
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              singleLine: true,
+              translateTime: 'yyyy-mm-dd HH:MM:ss.l Z',
+              ignore: 'pid,hostname',
+            },
+          }
           : undefined,
 
         // Correlation ID (X-Request-Id)
@@ -60,4 +60,4 @@ const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
   ],
   exports: [LoggerModule],
 })
-export class PinoLoggerModule {}
+export class PinoLoggerModule { }
