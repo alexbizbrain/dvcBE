@@ -13,6 +13,7 @@ import { SaveProgressDto } from './dto/save-progress.dto';
 import { DvccConfigResponseDto } from './dto/dvcc-config-response.dto';
 import { JwtAuthGuard } from 'src/common/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/auth/decorators/current-user.decorator';
+import { Public } from 'src/common/auth/decorators/public.decorator';
 import { DvccConfigService } from '../admin/dvcc-config/dvcc-config.service';
 
 @Controller('calculator-progress')
@@ -21,7 +22,7 @@ export class CalculatorProgressController {
   constructor(
     private readonly calculatorProgressService: CalculatorProgressService,
     private readonly dvccConfigService: DvccConfigService,
-  ) {}
+  ) { }
 
   @Get()
   async getProgress(@CurrentUser() user: { id: string }) {
@@ -78,6 +79,7 @@ export class CalculatorProgressController {
   }
 
   @Get('config')
+  @Public()
   async getDvccConfig(): Promise<{
     success: boolean;
     data: DvccConfigResponseDto;
@@ -87,17 +89,11 @@ export class CalculatorProgressController {
     // Transform Prisma Decimal fields to numbers for frontend
     const responseData: DvccConfigResponseDto = {
       minApproxCarPrice: Number(config.minApproxCarPrice),
-      maxApproxCarPrice: Number(config.maxApproxCarPrice),
       minApproxCarPriceActive: config.minApproxCarPriceActive,
-      maxApproxCarPriceActive: config.maxApproxCarPriceActive,
       minTotalRepairCost: config.minTotalRepairCost
         ? Number(config.minTotalRepairCost)
         : null,
       minTotalRepairCostActive: config.minTotalRepairCostActive,
-      maxTotalRepairCost: config.maxTotalRepairCost
-        ? Number(config.maxTotalRepairCost)
-        : null,
-      maxTotalRepairCostActive: config.maxTotalRepairCostActive,
       contingencyPlanPercentage: config.contingencyPlanPercentage
         ? Number(config.contingencyPlanPercentage)
         : null,

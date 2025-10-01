@@ -11,13 +11,9 @@ export class DvccConfigSeeder {
       data: {
         id: 'singleton-dvcc-config',
         minApproxCarPrice: 0,
-        maxApproxCarPrice: 1000000,
         minApproxCarPriceActive: false,
-        maxApproxCarPriceActive: false,
         minTotalRepairCost: null,
         minTotalRepairCostActive: false,
-        maxTotalRepairCost: null,
-        maxTotalRepairCostActive: false,
         contingencyPlanPercentage: null,
       },
     });
