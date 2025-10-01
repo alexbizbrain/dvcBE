@@ -42,15 +42,7 @@ function extractDomainFromText(text?: string) {
   return domMatch ? normalizeDomain(domMatch[0]) : '';
 }
 
-function slugFromName(name?: string) {
-  const s = (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
-  return s || 'unknown';
-}
-
-function deriveEmail(websiteUrl?: string, companyName?: string) {
-  const dom = normalizeDomain(websiteUrl || '');
-  return dom ? `${dom}@gmail.com` : `${slugFromName(companyName)}@gmail.com`;
-}
+// removed email derivation to avoid injecting artificial emails; we only use real emails from CSV when present
 
 function findCol(cols: string[], ...candidates: string[]) {
   const lc = cols.map((c) => c.toLowerCase());
@@ -213,6 +205,14 @@ function toSeedRows(rows: RawRow[], filename: string) {
   const addrCol = findCol(cols, 'address', 'location', 'mailing address');
   const infoCol = findCol(cols, 'company information', 'information', 'notes');
   const phoneCol = findCol(cols, 'phone', 'telephone', 'tel', 'contact phone');
+  const emailCol = findCol(
+    cols,
+    'email',
+    'e-mail',
+    'contact email',
+    'mail',
+    'contact mail',
+  );
   const typesCol = findCol(cols, 'insurance types', 'insurance type', 'types');
   const defaultType: 'AUTO' | 'COMMERCIAL_AUTO' = coerceInsuranceType(
     path.basename(filename),
@@ -220,7 +220,7 @@ function toSeedRows(rows: RawRow[], filename: string) {
 
   const out: Array<{
     companyName: string;
-    contactEmail: string;
+    contactEmail: string | null;
     naic: string;
     insuranceType: 'AUTO' | 'COMMERCIAL_AUTO';
     websiteUrl: string | null;
@@ -254,7 +254,12 @@ function toSeedRows(rows: RawRow[], filename: string) {
       domain = extractDomainFromText(joined);
     }
     const websiteUrl = domain ? `https://${domain}` : null;
-    const contactEmail = deriveEmail(websiteUrl || undefined, companyName);
+    let contactEmailRaw = (r[emailCol || ''] || '').toString().trim();
+    if (contactEmailRaw === '') contactEmailRaw = '';
+    const emailMatch = contactEmailRaw.match(
+      /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+    );
+    const contactEmail = emailMatch ? emailMatch[0] : null;
     // derive types from row if possible
     let types: ('AUTO' | 'COMMERCIAL_AUTO')[] = [];
     if (typesCol) {
@@ -328,7 +333,7 @@ export class InsuranceCompanySeeder {
             : [coerceInsuranceType(path.basename(file))]
           ).map((t) => ({
             companyName: r.companyName,
-            contactEmail: deriveEmail(undefined, r.companyName),
+            contactEmail: null,
             naic: r.naic,
             insuranceType: t,
             websiteUrl: r.websiteUrl ?? null,
@@ -348,20 +353,116 @@ export class InsuranceCompanySeeder {
       }
     }
 
-    // Dedupe by (companyName, insuranceType)
-    const seen = new Set<string>();
-    const unique = all.filter((r) => {
-      const k = `${r.companyName.toLowerCase()}|${r.insuranceType}`;
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
+    // Group by normalized website domain so that different names with the same website are treated as the same company
+    type Aggregated = {
+      domainKey: string; // normalized domain or fallback key
+      websiteUrl: string | null;
+      names: string[];
+      naics: string[];
+      emails: string[];
+      types: Set<'AUTO' | 'COMMERCIAL_AUTO'>;
+      licensedStates: Set<string> | null; // union if available
+      informationParts: string[];
+    };
+
+    function pickPreferredName(names: string[]): string {
+      const counts = new Map<string, number>();
+      names.forEach((n) => counts.set(n, (counts.get(n) || 0) + 1));
+      let best = '';
+      let bestCount = -1;
+      for (const [n, c] of counts.entries()) {
+        if (c > bestCount) {
+          best = n;
+          bestCount = c;
+        } else if (c === bestCount) {
+          // tie-breaker: shorter trimmed name
+          if (n.trim().length < best.trim().length) best = n;
+        }
+      }
+      return best || names[0] || 'Unknown';
+    }
+
+    function normalizeWebsiteToDomainKey(
+      websiteUrl: string | null | undefined,
+    ) {
+      const dom = normalizeDomain(websiteUrl || '');
+      return dom || '';
+    }
+
+    const groups = new Map<string, Aggregated>();
+    for (const r of all) {
+      const dom = normalizeWebsiteToDomainKey(r.websiteUrl);
+      const key =
+        dom ||
+        `__no_website__|${r.companyName.toLowerCase()}|${r.insuranceType}`;
+      const g = groups.get(key) || {
+        domainKey: dom,
+        websiteUrl: dom ? `https://${dom}` : null,
+        names: [],
+        naics: [],
+        emails: [],
+        types: new Set<'AUTO' | 'COMMERCIAL_AUTO'>(),
+        licensedStates: null,
+        informationParts: [],
+      };
+      if (r.companyName) g.names.push(r.companyName);
+      if (r.naic) g.naics.push(r.naic);
+      if (r.contactEmail) g.emails.push(r.contactEmail);
+      if (r.insuranceType) g.types.add(r.insuranceType);
+      if (r.companyLicensed && r.companyLicensed.licensedStates) {
+        if (!g.licensedStates) g.licensedStates = new Set<string>();
+        for (const s of r.companyLicensed.licensedStates)
+          g.licensedStates.add(String(s).toUpperCase());
+      }
+      if (r.companyInformation) g.informationParts.push(r.companyInformation);
+      groups.set(key, g);
+    }
+
+    const finalRecords: Array<{
+      companyName: string;
+      contactEmail: string | null;
+      naic: string;
+      insuranceType: 'AUTO' | 'COMMERCIAL_AUTO';
+      websiteUrl: string | null;
+      companyLicensed: any;
+      companyInformation: string | null;
+    }> = [];
+
+    for (const g of groups.values()) {
+      const preferredName = pickPreferredName(
+        g.names.length ? g.names : ['Unknown'],
+      );
+      const naic = (g.naics.find((x) => x && x.trim()) || '').trim();
+      const websiteUrl = g.websiteUrl;
+      const preferredEmail = (g.emails.find((e) => e && e.trim()) || '').trim();
+      const contactEmail: string | null = preferredEmail || null;
+      const companyLicensed = g.licensedStates
+        ? { licensedStates: Array.from(g.licensedStates) }
+        : null;
+      const infoJoined = Array.from(new Set(g.informationParts.filter(Boolean)))
+        .join(' ')
+        .trim();
+      const companyInformation = infoJoined || null;
+
+      const types = g.types.size ? Array.from(g.types) : (['AUTO'] as const);
+      for (const t of types) {
+        finalRecords.push({
+          companyName: preferredName,
+          contactEmail,
+          naic,
+          insuranceType: t,
+          websiteUrl,
+          companyLicensed,
+          companyInformation,
+        });
+      }
+    }
 
     console.log(
-      `   🧮 Prepared records: ${all.length}, unique by (name,type): ${unique.length}, websiteUrl: ${unique.map((r) => r.websiteUrl).join(', ')}`,
+      `   🧮 Prepared records: ${all.length}, grouped by website: ${finalRecords.length}`,
     );
     let count = 0;
-    for (const r of unique) {
+    for (const r of finalRecords) {
       console.log(
         `   🔄 Processing ${r.companyName} (${r.insuranceType}), websiteUrl: ${r.websiteUrl}, companyLicensed: ${r.companyLicensed}, companyInformation: ${r.companyInformation}`,
       );
@@ -373,7 +474,7 @@ export class InsuranceCompanySeeder {
           },
         },
         update: {
-          contactEmail: r.contactEmail,
+          contactEmail: { set: r.contactEmail ?? null },
           naic: r.naic,
           websiteUrl: r.websiteUrl,
           companyLicensed: r.companyLicensed,
@@ -381,7 +482,7 @@ export class InsuranceCompanySeeder {
         },
         create: {
           companyName: r.companyName,
-          contactEmail: r.contactEmail,
+          contactEmail: r.contactEmail ?? null,
           naic: r.naic,
           insuranceType: r.insuranceType,
           websiteUrl: r.websiteUrl,

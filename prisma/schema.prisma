@@ -148,7 +148,7 @@ model Claim {
 model InsuranceCompany {
   id        String   @id @default(cuid())
   companyName String @map("name")
-  contactEmail String
+  contactEmail String?
   naic String?
   insuranceType InsuranceType
   websiteUrl String?
