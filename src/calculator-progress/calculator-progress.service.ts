@@ -295,7 +295,11 @@ export class CalculatorProgressService {
         hitAndRun: accidentInfo.hitAndRun,
       },
       insuranceInfo: {
-        yourInsurance: insuranceInfo.yourInsurance,
+        firstName: insuranceInfo.firstName,
+        lastName: insuranceInfo.lastName,
+        email: insuranceInfo.email,
+        phone: insuranceInfo.phone,
+        address: insuranceInfo.address,
         claimNumber: insuranceInfo.claimNumber,
         atFaultInsurance: insuranceInfo.atFaultInsurance,
         adjusterName: insuranceInfo.adjusterName,
@@ -333,27 +337,8 @@ export class CalculatorProgressService {
   ): Promise<any> {
     const processedInsuranceInfo = { ...insuranceInfo };
 
-    // Handle yourInsurance custom company creation
-    if (
-      insuranceInfo?.yourInsurance &&
-      !insuranceInfo.yourInsurance.insuranceCompanyId &&
-      insuranceInfo.yourInsurance.companyName
-    ) {
-      const customInsuranceCompany = await this.prisma.insuranceCompany.create({
-        data: {
-          companyName: insuranceInfo.yourInsurance.companyName,
-          contactEmail: '', // Default empty email
-          insuranceType: 'AUTO', // Default to AUTO
-          type: 'CUSTOM',
-          userId: userId,
-        },
-      });
-
-      processedInsuranceInfo.yourInsurance = {
-        insuranceCompanyId: customInsuranceCompany.id,
-        companyName: customInsuranceCompany.companyName,
-      };
-    }
+    // Note: yourInsurance section has been removed per frontend changes
+    // Only handle atFaultInsurance custom company creation
 
     // Handle atFaultInsurance custom company creation
     if (
