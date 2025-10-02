@@ -6,7 +6,7 @@ import { ClaimStatus, ClaimFlow } from '@prisma/client';
 
 @Injectable()
 export class CalculatorProgressService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getProgress(
     userId: string,
@@ -379,7 +379,7 @@ export class CalculatorProgressService {
   ): Promise<void> {
     if (!insuranceInfo) return;
 
-    const { firstName, lastName, email, phone } = insuranceInfo;
+    const { firstName, lastName, email, phone, address } = insuranceInfo;
 
     // Get current user data to check what's missing
     const currentUser = await this.prisma.user.findUnique({
@@ -387,8 +387,7 @@ export class CalculatorProgressService {
       select: {
         firstName: true,
         lastName: true,
-        email: true,
-        phoneNumber: true,
+        address: true,
       },
     });
 
@@ -405,12 +404,8 @@ export class CalculatorProgressService {
       updateData.lastName = lastName;
     }
 
-    if (email && !currentUser.email) {
-      updateData.email = email;
-    }
-
-    if (phone && !currentUser.phoneNumber) {
-      updateData.phoneNumber = phone;
+    if (address && !currentUser.address) {
+      updateData.address = address;
     }
 
     // Only update if there's something to update

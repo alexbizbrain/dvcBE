@@ -5,6 +5,7 @@ export type SafeUser = {
   countryCode: string | null;
   firstName: string | null;
   lastName: string | null;
+  address: string | null;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   isBusinessUser: boolean;
