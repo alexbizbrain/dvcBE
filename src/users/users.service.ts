@@ -45,6 +45,7 @@ export class UsersService {
       countryCode: user.countryCode,
       firstName: user.firstName,
       lastName: user.lastName,
+      address: user.address,
       isEmailVerified: user.isEmailVerified,
       isPhoneVerified: user.isPhoneVerified,
       isBusinessUser: user.isBusinessUser,
