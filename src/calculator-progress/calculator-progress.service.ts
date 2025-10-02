@@ -6,7 +6,7 @@ import { ClaimStatus, ClaimFlow } from '@prisma/client';
 
 @Injectable()
 export class CalculatorProgressService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async getProgress(
     userId: string,
@@ -167,16 +167,21 @@ export class CalculatorProgressService {
 
   async clearProgress(userId: string): Promise<void> {
     try {
-      // Delete the draft claim
-      await this.prisma.claim.deleteMany({
+      // Archive previous draft(s) so a fresh one can start
+      await this.prisma.claim.updateMany({
         where: {
           userId,
           status: ClaimStatus.INPROGRESS,
         },
+        data: {
+          status: ClaimStatus.CLOSED,
+          lastAccessedAt: new Date(),
+          updatedAt: new Date(),
+        },
       });
     } catch {
-      // If no draft claim exists, that's fine - nothing to clear
-      console.log('No draft claim to clear for user:', userId);
+      // If no draft claim exists, that's fine - nothing to archive
+      console.log('No draft claim to archive for user:', userId);
     }
   }
 

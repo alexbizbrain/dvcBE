@@ -13,6 +13,7 @@ import { PatchVehicleInfoDto } from './dto/patch-vehicle-info.dto';
 import { PatchAccidentInfoDto } from './dto/patch-accident-info.dto';
 import { PatchInsuranceInfoDto } from './dto/patch-insurance-info.dto';
 import { PatchLiabilityInfoDto } from './dto/patch-liability-info.dto';
+import { NotificationsService } from 'src/notifications/notification.service';
 
 const ACTIVE_STATUSES: ClaimStatus[] = [
   ClaimStatus.INPROGRESS,
@@ -55,7 +56,10 @@ const ALLOWED_TRANSITIONS: Partial<Record<ClaimStatus, ClaimStatus[]>> = {
 
 @Injectable()
 export class ClaimsService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async list(q: AdminClaimsQueryDto) {
     const {
@@ -368,8 +372,7 @@ export class ClaimsService {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async updateStatus(id: string, to: ClaimStatus, _adminId: string) {
+  async updateStatus(id: string, to: ClaimStatus, adminId: string) {
     const claim = await this.prismaService.claim.findUnique({ where: { id } });
     if (!claim) throw new NotFoundException('Claim not found');
 
@@ -383,7 +386,41 @@ export class ClaimsService {
       data: { status: to, updatedAt: new Date(), lastAccessedAt: new Date() },
     });
 
+    try {
+      await this.notificationsService.notifyClaimStatusChanged({
+        userId: updated.userId,
+        claimId: updated.id,
+        newStatus: to,
+        payload: {
+          fromStatus: from,
+          adminId,
+          updatedAt: updated.updatedAt,
+        },
+        title: this.humanTitleFor(to),
+        body: `Your claim ${updated.id} moved from ${from} to ${to}`,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+
     return updated;
+  }
+
+  private humanTitleFor(s: ClaimStatus) {
+    switch (s) {
+      case 'FINAL_OFFER_MADE':
+        return 'Final offer ready';
+      case 'CLAIM_SETTLED':
+        return 'Claim settled';
+      case 'CLAIM_PAID':
+        return 'Payment completed';
+      case 'NEGOTIATION':
+        return 'Negotiation in progress';
+      case 'SUBMITTED_TO_INSURER':
+        return 'Submitted to insurer';
+      default:
+        return 'Claim status updated';
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

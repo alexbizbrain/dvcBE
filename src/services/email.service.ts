@@ -101,6 +101,48 @@ export class EmailService {
     }
   }
 
+  async sendHtmlEmail(opts: {
+    to: string;
+    subject: string;
+    html: string;
+    text: string;
+  }): Promise<boolean> {
+    try {
+      const { to, subject, html, text } = opts;
+
+      if (
+        !process.env.AWS_ACCESS_KEY_ID ||
+        !process.env.AWS_SECRET_ACCESS_KEY
+      ) {
+        this.logger.warn(
+          `[EmailService] AWS creds missing. Would send: ${subject} -> ${to}`,
+        );
+        return true;
+      }
+
+      const cmd = new (await import('@aws-sdk/client-sesv2')).SendEmailCommand({
+        FromEmailAddress: process.env.FROM_EMAIL || 'noreply@yourdomain.com',
+        Destination: { ToAddresses: [to] },
+        Content: {
+          Simple: {
+            Subject: { Data: subject, Charset: 'UTF-8' },
+            Body: {
+              Html: { Data: html, Charset: 'UTF-8' },
+              ...(text ? { Text: { Data: text, Charset: 'UTF-8' } } : {}),
+            },
+          },
+        },
+      });
+
+      await this.sesClient.send(cmd);
+      this.logger.log(`[EmailService] sent ${subject} to ${to}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`[EmailService] sendHtmlEmail failed`, error);
+      return false;
+    }
+  }
+
   private generateOTPEmailTemplate(data: {
     otpCode: string;
     customerEmail: string;
