@@ -100,7 +100,7 @@ export class SmsService {
       this.logger.log(
         `OTP SMS sent successfully to ${formattedPhoneNumber}, MessageSid: ${twilioMessage.sid}`,
       );
-      console.log(twilioMessage)
+      console.log(twilioMessage);
 
       return {
         success: true,
@@ -118,6 +118,35 @@ export class SmsService {
         success: false,
         error: error.message || 'Failed to send SMS',
       };
+    }
+  }
+
+  async sendPlainSms(phoneNumber: string, body: string): Promise<SmsResult> {
+    try {
+      if (!this.isConfigured) {
+        this.logger.warn(
+          `[SmsService] Unconfigured. Would SMS ${phoneNumber}: ${body}`,
+        );
+        return { success: true, status: 'development' };
+      }
+
+      const formatted = this.formatPhoneNumber(phoneNumber);
+      if (!formatted) return { success: false, error: 'Invalid phone number' };
+
+      const params: any = {
+        body,
+        to: formatted,
+        validityPeriod: 300,
+        attempt: 1,
+        messagingServiceSid: this.messagingServiceSid,
+      };
+
+      const msg = await this.twilio.messages.create(params);
+      this.logger.log(`[SmsService] sent SMS to ${formatted}, sid=${msg.sid}`);
+      return { success: true, messageId: msg.sid, status: msg.status };
+    } catch (e: any) {
+      this.logger.error(`[SmsService] sendPlainSms error: ${e?.message}`, e);
+      return { success: false, error: e?.message || 'Failed to send SMS' };
     }
   }
 

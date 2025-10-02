@@ -14,6 +14,7 @@ import { UserDashboardModule } from './user-dashboard/user-dashboard.module';
 import { AdminAuthModule } from './admin/auth/admin-auth.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { ClaimsModule } from './admin/claims/claims.module';
+import { NotificationsModule } from './notifications/notification.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ClaimsModule } from './admin/claims/claims.module';
     AdminAuthModule,
     ReviewsModule,
     ClaimsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

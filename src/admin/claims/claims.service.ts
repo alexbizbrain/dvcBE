@@ -13,6 +13,7 @@ import { PatchVehicleInfoDto } from './dto/patch-vehicle-info.dto';
 import { PatchAccidentInfoDto } from './dto/patch-accident-info.dto';
 import { PatchInsuranceInfoDto } from './dto/patch-insurance-info.dto';
 import { PatchLiabilityInfoDto } from './dto/patch-liability-info.dto';
+import { NotificationsService } from 'src/notifications/notification.service';
 
 const ACTIVE_STATUSES: ClaimStatus[] = [
   ClaimStatus.INPROGRESS,
@@ -55,7 +56,10 @@ const ALLOWED_TRANSITIONS: Partial<Record<ClaimStatus, ClaimStatus[]>> = {
 
 @Injectable()
 export class ClaimsService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async list(q: AdminClaimsQueryDto) {
     const {
@@ -89,138 +93,138 @@ export class ClaimsService {
       ...(steps?.length ? { currentStep: { in: steps } } : {}),
       ...(createdFrom || createdTo
         ? {
-          createdAt: {
-            gte: createdFrom ? new Date(createdFrom) : undefined,
-            lte: createdTo ? new Date(createdTo) : undefined,
-          },
-        }
+            createdAt: {
+              gte: createdFrom ? new Date(createdFrom) : undefined,
+              lte: createdTo ? new Date(createdTo) : undefined,
+            },
+          }
         : {}),
       ...(updatedFrom || updatedTo
         ? {
-          updatedAt: {
-            gte: updatedFrom ? new Date(updatedFrom) : undefined,
-            lte: updatedTo ? new Date(updatedTo) : undefined,
-          },
-        }
+            updatedAt: {
+              gte: updatedFrom ? new Date(updatedFrom) : undefined,
+              lte: updatedTo ? new Date(updatedTo) : undefined,
+            },
+          }
         : {}),
       // JSON-based filters using Prisma JSON path operators
       ...(vin
         ? {
-          vehicleInfo: {
-            path: ['vin'],
-            string_contains: vin,
-            mode: 'insensitive',
-          } as any,
-        }
+            vehicleInfo: {
+              path: ['vin'],
+              string_contains: vin,
+              mode: 'insensitive',
+            } as any,
+          }
         : {}),
       ...(insurer
         ? {
-          OR: [
-            {
-              insuranceInfo: {
-                path: ['atFaultInsurance', 'companyName'],
-                string_contains: insurer,
-                mode: 'insensitive',
-              } as any,
-            },
-          ],
-        }
+            OR: [
+              {
+                insuranceInfo: {
+                  path: ['atFaultInsurance', 'companyName'],
+                  string_contains: insurer,
+                  mode: 'insensitive',
+                } as any,
+              },
+            ],
+          }
         : {}),
       ...(typeof isAtFault === 'boolean'
         ? {
-          OR: [
-            {
-              liabilityInfo: {
-                path: ['isAtFault'],
-                equals: isAtFault,
-              } as any,
-            },
-            {
-              accidentInfo: { path: ['isAtFault'], equals: isAtFault } as any,
-            },
-          ],
-        }
+            OR: [
+              {
+                liabilityInfo: {
+                  path: ['isAtFault'],
+                  equals: isAtFault,
+                } as any,
+              },
+              {
+                accidentInfo: { path: ['isAtFault'], equals: isAtFault } as any,
+              },
+            ],
+          }
         : {}),
       ...(typeof hitAndRun === 'boolean'
         ? { accidentInfo: { path: ['hitAndRun'], equals: hitAndRun } as any }
         : {}),
       ...(search
         ? {
-          OR: [
-            {
-              insuranceInfo: {
-                path: ['claimNumber'],
-                string_contains: search,
-                mode: 'insensitive',
-              } as any,
-            },
-            {
-              insuranceInfo: {
-                path: ['adjusterName'],
-                string_contains: search,
-                mode: 'insensitive',
-              } as any,
-            },
-            {
-              insuranceInfo: {
-                path: ['driverName'],
-                string_contains: search,
-                mode: 'insensitive',
-              } as any,
-            },
-            {
-              vehicleInfo: {
-                path: ['make'],
-                string_contains: search,
-                mode: 'insensitive',
-              } as any,
-            },
-            {
-              vehicleInfo: {
-                path: ['model'],
-                string_contains: search,
-                mode: 'insensitive',
-              } as any,
-            },
-            {
-              vehicleInfo: {
-                path: ['vin'],
-                string_contains: search,
-                mode: 'insensitive',
-              } as any,
-            },
-          ],
-        }
+            OR: [
+              {
+                insuranceInfo: {
+                  path: ['claimNumber'],
+                  string_contains: search,
+                  mode: 'insensitive',
+                } as any,
+              },
+              {
+                insuranceInfo: {
+                  path: ['adjusterName'],
+                  string_contains: search,
+                  mode: 'insensitive',
+                } as any,
+              },
+              {
+                insuranceInfo: {
+                  path: ['driverName'],
+                  string_contains: search,
+                  mode: 'insensitive',
+                } as any,
+              },
+              {
+                vehicleInfo: {
+                  path: ['make'],
+                  string_contains: search,
+                  mode: 'insensitive',
+                } as any,
+              },
+              {
+                vehicleInfo: {
+                  path: ['model'],
+                  string_contains: search,
+                  mode: 'insensitive',
+                } as any,
+              },
+              {
+                vehicleInfo: {
+                  path: ['vin'],
+                  string_contains: search,
+                  mode: 'insensitive',
+                } as any,
+              },
+            ],
+          }
         : {}),
       ...(hasDocuments
         ? {
-          OR: [
-            {
-              accidentInfo: {
-                path: ['repairInvoiceFileUrl'],
-                not: Prisma.DbNull,
-              } as any,
-            },
-            {
-              insuranceInfo: {
-                path: ['autoInsuranceCardFileUrl'],
-                not: Prisma.DbNull,
-              } as any,
-            },
-            {
-              insuranceInfo: {
-                path: ['driverLicenseFrontFileUrl'],
-                not: Prisma.DbNull,
-              } as any,
-            },
-            {
-              insuranceInfo: {
-                path: ['driverLicenseBackFileUrl'],
-                not: Prisma.DbNull,
-              } as any,
-            },
-          ],
-        }
+            OR: [
+              {
+                accidentInfo: {
+                  path: ['repairInvoiceFileUrl'],
+                  not: Prisma.DbNull,
+                } as any,
+              },
+              {
+                insuranceInfo: {
+                  path: ['autoInsuranceCardFileUrl'],
+                  not: Prisma.DbNull,
+                } as any,
+              },
+              {
+                insuranceInfo: {
+                  path: ['driverLicenseFrontFileUrl'],
+                  not: Prisma.DbNull,
+                } as any,
+              },
+              {
+                insuranceInfo: {
+                  path: ['driverLicenseBackFileUrl'],
+                  not: Prisma.DbNull,
+                } as any,
+              },
+            ],
+          }
         : {}),
       user: {
         ...(userEmail
@@ -229,11 +233,11 @@ export class ClaimsService {
         ...(userPhone ? { phoneNumber: { contains: userPhone } } : {}),
         ...(userName
           ? {
-            OR: [
-              { firstName: { contains: userName, mode: 'insensitive' } },
-              { lastName: { contains: userName, mode: 'insensitive' } },
-            ],
-          }
+              OR: [
+                { firstName: { contains: userName, mode: 'insensitive' } },
+                { lastName: { contains: userName, mode: 'insensitive' } },
+              ],
+            }
           : {}),
       },
       ...(userId ? { userId: { equals: userId } } : {}),
@@ -349,7 +353,7 @@ export class ClaimsService {
           agreedToTerms: !!pp.agreedToTerms,
           signatureUrl:
             typeof pp.signatureDataUrl === 'string' &&
-              pp.signatureDataUrl.startsWith('http')
+            pp.signatureDataUrl.startsWith('http')
               ? pp.signatureDataUrl
               : null,
           estimatedAmount,
@@ -370,8 +374,7 @@ export class ClaimsService {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async updateStatus(id: string, to: ClaimStatus, _adminId: string) {
+  async updateStatus(id: string, to: ClaimStatus, adminId: string) {
     const claim = await this.prismaService.claim.findUnique({ where: { id } });
     if (!claim) throw new NotFoundException('Claim not found');
 
@@ -385,7 +388,41 @@ export class ClaimsService {
       data: { status: to, updatedAt: new Date(), lastAccessedAt: new Date() },
     });
 
+    try {
+      await this.notificationsService.notifyClaimStatusChanged({
+        userId: updated.userId,
+        claimId: updated.id,
+        newStatus: to,
+        payload: {
+          fromStatus: from,
+          adminId,
+          updatedAt: updated.updatedAt,
+        },
+        title: this.humanTitleFor(to),
+        body: `Your claim ${updated.id} moved from ${from} to ${to}`,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+
     return updated;
+  }
+
+  private humanTitleFor(s: ClaimStatus) {
+    switch (s) {
+      case 'FINAL_OFFER_MADE':
+        return 'Final offer ready';
+      case 'CLAIM_SETTLED':
+        return 'Claim settled';
+      case 'CLAIM_PAID':
+        return 'Payment completed';
+      case 'NEGOTIATION':
+        return 'Negotiation in progress';
+      case 'SUBMITTED_TO_INSURER':
+        return 'Submitted to insurer';
+      default:
+        return 'Claim status updated';
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -485,11 +522,11 @@ export class ClaimsService {
     const dateFilter: Prisma.ClaimWhereInput =
       from || to
         ? {
-          createdAt: {
-            gte: from ? new Date(from) : undefined,
-            lte: to ? new Date(to) : undefined,
-          },
-        }
+            createdAt: {
+              gte: from ? new Date(from) : undefined,
+              lte: to ? new Date(to) : undefined,
+            },
+          }
         : {};
 
     const [
@@ -559,9 +596,9 @@ export class ClaimsService {
     const insurerCounts = new Map<string, number>();
     for (const row of allForAmounts) {
       const ii: any = row.insuranceInfo ?? {};
-      const names = [
-        ii.atFaultInsurance?.companyName,
-      ].filter(Boolean) as string[];
+      const names = [ii.atFaultInsurance?.companyName].filter(
+        Boolean,
+      ) as string[];
       for (const name of names) {
         const key = String(name).trim();
         if (!key) continue;
