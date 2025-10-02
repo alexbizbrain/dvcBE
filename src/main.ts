@@ -34,10 +34,12 @@ async function bootstrap() {
   );
 
   // Enable CORS for frontend with credentials (cookies)
-  const allowedOrigin =
-    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const allowedOrigins = [
+    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    'http://54.177.40.224',
+  ];
   app.enableCors({
-    origin: allowedOrigin,
+    origin: allowedOrigins,
     credentials: true,
   });
 
