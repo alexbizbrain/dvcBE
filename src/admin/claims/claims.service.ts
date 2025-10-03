@@ -14,6 +14,8 @@ import { PatchAccidentInfoDto } from './dto/patch-accident-info.dto';
 import { PatchInsuranceInfoDto } from './dto/patch-insurance-info.dto';
 import { PatchLiabilityInfoDto } from './dto/patch-liability-info.dto';
 import { NotificationsService } from 'src/notifications/notification.service';
+import { NotificationEvent } from 'src/notifications/types/notification-events.types';
+import { Logger } from 'nestjs-pino';
 
 const ACTIVE_STATUSES: ClaimStatus[] = [
   ClaimStatus.INPROGRESS,
@@ -59,6 +61,7 @@ export class ClaimsService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly logger: Logger,
   ) {}
 
   async list(q: AdminClaimsQueryDto) {
@@ -386,41 +389,49 @@ export class ClaimsService {
       data: { status: to, updatedAt: new Date(), lastAccessedAt: new Date() },
     });
 
+    // Send notification using event-based system
     try {
-      await this.notificationsService.notifyClaimStatusChanged({
-        userId: updated.userId,
-        claimId: updated.id,
-        newStatus: to,
-        payload: {
-          fromStatus: from,
-          adminId,
-          updatedAt: updated.updatedAt,
-        },
-        title: this.humanTitleFor(to),
-        body: `Your claim ${updated.id} moved from ${from} to ${to}`,
-      });
-    } catch (error) {
-      console.error(error);
+      const event = this.statusToNotificationEvent(to);
+      if (event) {
+        await this.notificationsService.notify({
+          userId: updated.userId,
+          event,
+          claimId: updated.id,
+          payload: {
+            fromStatus: from,
+            toStatus: to,
+            adminId,
+            updatedAt: updated.updatedAt,
+          },
+        });
+      }
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send status change notification: ${error.message}`,
+        error.stack,
+      );
     }
 
     return updated;
   }
 
-  private humanTitleFor(s: ClaimStatus) {
-    switch (s) {
-      case 'FINAL_OFFER_MADE':
-        return 'Final offer ready';
-      case 'CLAIM_SETTLED':
-        return 'Claim settled';
-      case 'CLAIM_PAID':
-        return 'Payment completed';
-      case 'NEGOTIATION':
-        return 'Negotiation in progress';
-      case 'SUBMITTED_TO_INSURER':
-        return 'Submitted to insurer';
-      default:
-        return 'Claim status updated';
-    }
+  private statusToNotificationEvent(
+    status: ClaimStatus,
+  ): NotificationEvent | null {
+    const eventMap: Record<ClaimStatus, NotificationEvent> = {
+      INPROGRESS: NotificationEvent.CLAIM_SUBMITTED,
+      DISQUALIFIED: NotificationEvent.CLAIM_DISQUALIFIED,
+      REPAIR_COST_PENDING: NotificationEvent.CLAIM_REPAIR_PENDING,
+      DV_CLAIM_CREATED: NotificationEvent.CLAIM_DV_CREATED,
+      SUBMITTED_TO_INSURER: NotificationEvent.CLAIM_SUBMITTED_TO_INSURER,
+      NEGOTIATION: NotificationEvent.CLAIM_IN_NEGOTIATION,
+      FINAL_OFFER_MADE: NotificationEvent.CLAIM_FINAL_OFFER,
+      CLAIM_SETTLED: NotificationEvent.CLAIM_SETTLED,
+      CLAIM_PAID: NotificationEvent.CLAIM_PAID,
+      CLOSED: NotificationEvent.CLAIM_CLOSED,
+    };
+
+    return eventMap[status] || null;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

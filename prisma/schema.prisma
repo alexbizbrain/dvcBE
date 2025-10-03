@@ -54,28 +54,29 @@ model Role {
 }
 
 model User {
-  id                 String             @id @default(cuid())
-  email              String?            @unique
-  phoneNumber        String?            @unique
-  countryCode        String?            @default("+1")
-  firstName          String?
-  lastName           String?
-  address            String?
-  password           String?
-  isEmailVerified    Boolean            @default(false)
-  isPhoneVerified    Boolean            @default(false)
-  isActive           Boolean            @default(true)
-  lastLoginAt        DateTime?
-  roleId             String
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  isBusinessUser     Boolean            @default(false)
-  otps               Otp[]
-  role               Role               @relation(fields: [roleId], references: [id])
-  claims             Claim[]
-  customerQueries    CustomerQuery[]
-  insuranceCompanies InsuranceCompany[]
-  notifications      Notification[]
+  id                       String                        @id @default(cuid())
+  email                    String?                       @unique
+  phoneNumber              String?                       @unique
+  countryCode              String?                       @default("+1")
+  firstName                String?
+  lastName                 String?
+  address                  String?
+  password                 String?
+  isEmailVerified          Boolean                       @default(false)
+  isPhoneVerified          Boolean                       @default(false)
+  isActive                 Boolean                       @default(true)
+  lastLoginAt              DateTime?
+  roleId                   String
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
+  isBusinessUser           Boolean                       @default(false)
+  otps                     Otp[]
+  role                     Role                          @relation(fields: [roleId], references: [id])
+  claims                   Claim[]
+  customerQueries          CustomerQuery[]
+  insuranceCompanies       InsuranceCompany[]
+  notifications            Notification[]
+  notificationPreferences  UserNotificationPreferences?
 
   @@map("users")
 }
@@ -190,18 +191,37 @@ model DVCCConfiguration {
 }
 
 model Notification {
-  id        String               @id @default(cuid())
-  userId    String
-  title     String
-  body      String
-  eventType String
-  payload   Json
-  priority  NotificationPriority @default(NORMAL)
-  isRead    Boolean              @default(false)
-  createdAt DateTime             @default(now())
+  id             String               @id @default(cuid())
+  userId         String
+  title          String
+  body           String
+  eventType      String
+  payload        Json
+  priority       NotificationPriority @default(NORMAL)
+  isRead         Boolean              @default(false)
+  emailSentAt    DateTime? // Track when email summary was sent
+  smsSentAt      DateTime? // Track when SMS summary was sent
+  createdAt      DateTime             @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt], name: "idx_notification_user_created")
+  @@index([userId, emailSentAt], name: "idx_notification_email_sent")
+  @@index([userId, smsSentAt], name: "idx_notification_sms_sent")
   @@map("notifications")
+}
+
+model UserNotificationPreferences {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  enableEmailNotifications Boolean  @default(true)
+  enableSmsNotifications   Boolean  @default(false) // Default to false due to SMS costs
+  emailDigestTime         String   @default("18:00") // Time for daily digest (24h format)
+  timezone                String   @default("America/New_York")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_preferences")
 }
