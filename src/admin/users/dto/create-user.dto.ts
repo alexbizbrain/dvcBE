@@ -35,6 +35,11 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
+  address?: string;
+
+  @IsOptional()
+  @IsString()
   @MinLength(6)
   @MaxLength(100)
   password?: string;
