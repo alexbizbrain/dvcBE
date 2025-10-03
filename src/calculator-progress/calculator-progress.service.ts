@@ -33,6 +33,28 @@ export class CalculatorProgressService {
     return this.mapToResponseDto(claim);
   }
 
+  async getProgressByClaimId(
+    userId: string,
+    claimId: string,
+  ): Promise<CalculatorProgressResponseDto | null> {
+    // Get the specific claim for the user
+    const claim = await this.prisma.claim.findFirst({
+      where: {
+        id: claimId,
+        userId,
+        status: {
+          in: [ClaimStatus.INPROGRESS, ClaimStatus.REPAIR_COST_PENDING],
+        },
+      },
+    });
+
+    if (!claim) {
+      return null;
+    }
+
+    return this.mapToResponseDto(claim);
+  }
+
   async saveProgress(
     userId: string,
     data: SaveProgressDto,
