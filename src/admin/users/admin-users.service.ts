@@ -18,7 +18,7 @@ import { UserMetricsDto } from './dto/user-metrics.dto';
 
 @Injectable()
 export class AdminUsersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async metrics(): Promise<UserMetricsDto> {
     const [totalUsers, activeUsers, emailVerified, businessUsers] =

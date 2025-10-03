@@ -20,7 +20,7 @@ import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 @Injectable()
 export class AdminUsersService {
   private adminRoleIdCache?: string;
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   private async getAdminRoleId(): Promise<string> {
     if (this.adminRoleIdCache) return this.adminRoleIdCache;
@@ -106,21 +106,21 @@ export class AdminUsersService {
         : {}),
       ...(query.search
         ? {
-          OR: [
-            { firstName: { contains: query.search, mode: 'insensitive' } },
-            { lastName: { contains: query.search, mode: 'insensitive' } },
-            { email: { contains: query.search, mode: 'insensitive' } },
-            { phoneNumber: { contains: query.search, mode: 'insensitive' } },
-          ],
-        }
+            OR: [
+              { firstName: { contains: query.search, mode: 'insensitive' } },
+              { lastName: { contains: query.search, mode: 'insensitive' } },
+              { email: { contains: query.search, mode: 'insensitive' } },
+              { phoneNumber: { contains: query.search, mode: 'insensitive' } },
+            ],
+          }
         : {}),
       ...(query.dateFrom || query.dateTo
         ? {
-          createdAt: {
-            ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-            ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
-          },
-        }
+            createdAt: {
+              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+              ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+            },
+          }
         : {}),
     };
 
