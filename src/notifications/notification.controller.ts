@@ -1,7 +1,17 @@
-import { Controller, Get, Patch, Param, Query, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Query,
+  Delete,
+  Body,
+  Put,
+} from '@nestjs/common';
 import { NotificationsService } from './notification.service';
 import { CurrentUser } from 'src/common/auth/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
+import { UpdateNotificationPreferencesDto } from './dto/notification-preferences.dto';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -45,5 +55,22 @@ export class NotificationsController {
   async counts(@CurrentUser() user: User) {
     const userId: string = user.id;
     return this.notificationsService.counts(userId);
+  }
+
+  // ==================== Preferences ====================
+
+  @Get('preferences')
+  async getPreferences(@CurrentUser() user: User) {
+    const userId: string = user.id;
+    return this.notificationsService.getOrCreateUserPreferences(userId);
+  }
+
+  @Put('preferences')
+  async updatePreferences(
+    @CurrentUser() user: User,
+    @Body() dto: UpdateNotificationPreferencesDto,
+  ) {
+    const userId: string = user.id;
+    return this.notificationsService.updateUserPreferences(userId, dto);
   }
 }

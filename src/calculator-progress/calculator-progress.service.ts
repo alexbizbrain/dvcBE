@@ -3,10 +3,17 @@ import { PrismaService } from '../prisma.service';
 import { SaveProgressDto } from './dto/save-progress.dto';
 import { CalculatorProgressResponseDto } from './dto/calculator-progress-response.dto';
 import { ClaimStatus, ClaimFlow } from '@prisma/client';
+import { NotificationsService } from '../notifications/notification.service';
+import { NotificationEvent } from '../notifications/types/notification-events.types';
+import { Logger } from 'nestjs-pino';
 
 @Injectable()
 export class CalculatorProgressService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+    private readonly logger: Logger,
+  ) {}
 
   async getProgress(
     userId: string,
@@ -16,6 +23,28 @@ export class CalculatorProgressService {
       where: {
         userId,
         status: ClaimStatus.INPROGRESS,
+      },
+    });
+
+    if (!claim) {
+      return null;
+    }
+
+    return this.mapToResponseDto(claim);
+  }
+
+  async getProgressByClaimId(
+    userId: string,
+    claimId: string,
+  ): Promise<CalculatorProgressResponseDto | null> {
+    // Get the specific claim for the user
+    const claim = await this.prisma.claim.findFirst({
+      where: {
+        id: claimId,
+        userId,
+        status: {
+          in: [ClaimStatus.INPROGRESS, ClaimStatus.REPAIR_COST_PENDING],
+        },
       },
     });
 
@@ -198,7 +227,7 @@ export class CalculatorProgressService {
     }
 
     // Update the draft claim to completed
-    await this.prisma.claim.update({
+    const updatedClaim = await this.prisma.claim.update({
       where: { id: draftClaim.id },
       data: {
         status: ClaimStatus.DV_CLAIM_CREATED,
@@ -206,6 +235,23 @@ export class CalculatorProgressService {
         lastAccessedAt: new Date(),
       },
     });
+
+    // Send notification that claim was submitted/created
+    try {
+      await this.notificationsService.notify({
+        userId,
+        event: NotificationEvent.CLAIM_DV_CREATED,
+        claimId: updatedClaim.id,
+        payload: {
+          submittedAt: updatedClaim.lastAccessedAt,
+        },
+      });
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send claim submission notification: ${error.message}`,
+        error.stack,
+      );
+    }
   }
 
   async getProgressStats(): Promise<any> {
@@ -379,7 +425,7 @@ export class CalculatorProgressService {
   ): Promise<void> {
     if (!insuranceInfo) return;
 
-    const { firstName, lastName, email, phone, address } = insuranceInfo;
+    const { firstName, lastName, address } = insuranceInfo;
 
     // Get current user data to check what's missing
     const currentUser = await this.prisma.user.findUnique({
