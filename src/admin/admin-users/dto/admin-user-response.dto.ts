@@ -9,6 +9,7 @@ export class AdminUserResponseDto {
   phoneNumber?: string | null;
   firstName?: string | null;
   lastName?: string | null;
+  address?: string | null;
   isActive!: boolean;
   isEmailVerified!: boolean;
   isPhoneVerified!: boolean;

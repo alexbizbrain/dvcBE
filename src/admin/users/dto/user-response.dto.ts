@@ -5,6 +5,7 @@ export class UserResponseDto {
   countryCode?: string;
   firstName?: string;
   lastName?: string;
+  address?: string;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   isBusinessUser: boolean;

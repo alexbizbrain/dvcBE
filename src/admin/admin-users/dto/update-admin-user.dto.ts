@@ -18,6 +18,10 @@ export class UpdateAdminUserDto {
   lastName?: string;
 
   @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 

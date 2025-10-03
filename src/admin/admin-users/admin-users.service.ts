@@ -20,7 +20,7 @@ import { UpdateAdminUserDto } from './dto/update-admin-user.dto';
 @Injectable()
 export class AdminUsersService {
   private adminRoleIdCache?: string;
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private async getAdminRoleId(): Promise<string> {
     if (this.adminRoleIdCache) return this.adminRoleIdCache;
@@ -52,6 +52,7 @@ export class AdminUsersService {
       phoneNumber: true,
       firstName: true,
       lastName: true,
+      address: true,
       isActive: true,
       isEmailVerified: true,
       isPhoneVerified: true,
@@ -105,21 +106,21 @@ export class AdminUsersService {
         : {}),
       ...(query.search
         ? {
-            OR: [
-              { firstName: { contains: query.search, mode: 'insensitive' } },
-              { lastName: { contains: query.search, mode: 'insensitive' } },
-              { email: { contains: query.search, mode: 'insensitive' } },
-              { phoneNumber: { contains: query.search, mode: 'insensitive' } },
-            ],
-          }
+          OR: [
+            { firstName: { contains: query.search, mode: 'insensitive' } },
+            { lastName: { contains: query.search, mode: 'insensitive' } },
+            { email: { contains: query.search, mode: 'insensitive' } },
+            { phoneNumber: { contains: query.search, mode: 'insensitive' } },
+          ],
+        }
         : {}),
       ...(query.dateFrom || query.dateTo
         ? {
-            createdAt: {
-              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-              ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
-            },
-          }
+          createdAt: {
+            ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+            ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+          },
+        }
         : {}),
     };
 
@@ -168,6 +169,7 @@ export class AdminUsersService {
           phoneNumber: dto.phoneNumber ?? undefined,
           firstName: dto.firstName ?? undefined,
           lastName: dto.lastName ?? undefined,
+          address: dto.address ?? undefined,
           isActive: dto.isActive ?? undefined,
           isEmailVerified: dto.isEmailVerified ?? undefined,
           isPhoneVerified: dto.isPhoneVerified ?? undefined,

@@ -18,7 +18,7 @@ import { UserMetricsDto } from './dto/user-metrics.dto';
 
 @Injectable()
 export class AdminUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async metrics(): Promise<UserMetricsDto> {
     const [totalUsers, activeUsers, emailVerified, businessUsers] =
@@ -483,6 +483,7 @@ export class AdminUsersService {
       countryCode: user.countryCode,
       firstName: user.firstName,
       lastName: user.lastName,
+      address: user.address,
       isEmailVerified: user.isEmailVerified,
       isPhoneVerified: user.isPhoneVerified,
       isBusinessUser: user.isBusinessUser,
