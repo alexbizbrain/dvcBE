@@ -16,6 +16,8 @@ export class UserDto {
   @IsOptional() @IsString() @MaxLength(80) firstName?: string;
   @IsOptional() @IsString() @MaxLength(80) lastName?: string;
 
+  @IsOptional() @IsString() @MaxLength(500) address?: string;
+
   @IsOptional() @IsBoolean() isBusinessUser?: boolean;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }

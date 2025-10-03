@@ -1,4 +1,3 @@
-
 import {
   Controller,
   Post,
@@ -9,6 +8,7 @@ import {
   Res,
   UnauthorizedException,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserDto } from './dto/user.dto';
@@ -24,13 +24,14 @@ import { AuthToken } from 'src/common/auth/decorators/auth-token.decorator';
 import { Roles } from 'src/common/auth/decorators/roles.decorator';
 import type { Response } from 'express';
 import { GetInsuranceCompaniesDto } from './dto/insurance-companies.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly authService: AuthService,
-  ) { }
+  ) {}
 
   @Public()
   @Post('check')
@@ -121,6 +122,16 @@ export class UsersController {
     return this.usersService.getSafeUserById(user.id);
   }
 
+  @Roles('user')
+  @Patch('profile')
+  @HttpCode(HttpStatus.OK)
+  async updateProfile(
+    @CurrentUser() user: User,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    Logger.log('Updating profile for user:', user.id);
+    return this.usersService.updateProfile(user.id, updateProfileDto);
+  }
 
   @Roles('user')
   @Post('logout')
@@ -135,9 +146,7 @@ export class UsersController {
 
   @Roles('user')
   @Get('insurance-companies')
-  async getInsuranceCompanies(
-    @Query() query: GetInsuranceCompaniesDto
-  ) {
+  async getInsuranceCompanies(@Query() query: GetInsuranceCompaniesDto) {
     const { search, type, page = 1, limit = 50 } = query;
 
     return this.usersService.getInsuranceCompanies({

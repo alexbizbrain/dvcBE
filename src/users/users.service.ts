@@ -12,6 +12,7 @@ import { Prisma, User } from '@prisma/client';
 import { randomInt } from 'crypto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { SmsService } from '../services/sms.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -35,7 +36,7 @@ export class UsersService {
     private emailService: EmailService,
     private smsService: SmsService,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
   private toSafeUser(user: User): SafeUser {
     return {
@@ -193,6 +194,42 @@ export class UsersService {
     const user = await this.prismaService.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
     return this.toSafeUser(user);
+  }
+
+  async updateProfile(
+    userId: string,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data: SafeUser;
+  }> {
+    Logger.log('Updating profile for user:', userId);
+
+    // Check if user exists
+    const existingUser = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!existingUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Update only the allowed fields
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: userId },
+      data: {
+        firstName: updateProfileDto.firstName,
+        lastName: updateProfileDto.lastName,
+        address: updateProfileDto.address,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Profile updated successfully',
+      data: this.toSafeUser(updatedUser),
+    };
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
