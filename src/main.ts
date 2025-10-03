@@ -36,6 +36,8 @@ async function bootstrap() {
   // Enable CORS for frontend with credentials (cookies)
   const allowedOrigins = [
     process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    'http://staging.myfreecarvalue.com',
+    'https://staging.myfreecarvalue.com',
     'http://54.177.40.224',
   ];
   app.enableCors({
