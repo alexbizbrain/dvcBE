@@ -203,7 +203,7 @@ export class CalculatorProgressService {
           status: ClaimStatus.INPROGRESS,
         },
         data: {
-          status: ClaimStatus.CLOSED,
+          status: ClaimStatus.INPROGRESS,
           lastAccessedAt: new Date(),
           updatedAt: new Date(),
         },
